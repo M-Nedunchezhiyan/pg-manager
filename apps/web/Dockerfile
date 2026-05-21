@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:22.11.0-alpine AS deps
+FROM node:26.2.0-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /repo
 RUN corepack enable && corepack prepare pnpm@9.12.3 --activate
@@ -13,7 +13,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
     pnpm install --frozen-lockfile --prefer-offline
 
-FROM node:22.11.0-alpine AS build
+FROM node:26.2.0-alpine AS build
 WORKDIR /repo
 RUN corepack enable && corepack prepare pnpm@9.12.3 --activate
 COPY --from=deps /repo/node_modules ./node_modules
@@ -23,7 +23,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @pg/web build
 
-FROM node:22.11.0-alpine AS runtime
+FROM node:26.2.0-alpine AS runtime
 RUN apk add --no-cache tini && \
     addgroup -S app && adduser -S -G app app
 
