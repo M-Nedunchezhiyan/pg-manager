@@ -1,0 +1,17 @@
+# Gitleaks config — extends the default ruleset.
+# Run locally: gitleaks detect --config .gitleaks.toml --no-banner
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+    '''\.env\.example$''',
+    '''README\.md$''',
+    '''SECURITY\.md$''',
+    '''pnpm-lock\.yaml$''',
+]
+regexes = [
+    '''change_me_[a-z_]+''',
+]

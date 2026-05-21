@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light-green + white theme — calm, high contrast for admin UI. */
+  --primary: 142 71% 45%;          /* #22C55E green-500 */
+  --primary-soft: 142 76% 92%;     /* #DCFCE7 green-100 */
+  --primary-deep: 142 72% 29%;     /* #15803D green-700 */
+  --primary-foreground: 0 0% 100%;
+
+  --bg: 0 0% 100%;
+  --surface: 210 40% 98%;
+  --border: 214 32% 91%;
+  --text: 222 47% 11%;
+  --muted: 215 16% 47%;
+
+  --danger: 0 84% 60%;
+  --warn: 38 92% 50%;
+  --success: 142 71% 45%;
+}
+
+html,
+body {
+  background-color: hsl(var(--bg));
+  color: hsl(var(--text));
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+/* Focus ring visible for accessibility (WCAG 2.4.7). */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary-deep));
+  outline-offset: 2px;
+}

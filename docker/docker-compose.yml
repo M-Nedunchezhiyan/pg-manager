@@ -1,0 +1,97 @@
+# PG Manager — local dev stack.
+# All data services are on an internal network. Only API/web ports are published.
+# Pins to specific minor versions; bump explicitly so CVE surface is reviewable.
+
+name: pg-manager
+
+networks:
+  pgmgr-internal:
+    driver: bridge
+    internal: false  # set true in prod compose; dev needs egress for migrations
+  pgmgr-public:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Force scram-sha-256 — no md5 fallback
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    ports:
+      # Dev only — bind to localhost so it's not reachable from LAN
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - pgmgr-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command:
+      - "redis-server"
+      - "--requirepass"
+      - "${REDIS_PASSWORD}"
+      - "--maxmemory"
+      - "256mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+      - "--save"
+      - "60 1000"
+      - "--appendonly"
+      - "yes"
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - pgmgr-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Uploaded files are stored on the API's local filesystem under STORAGE_ROOT.
+  # No object-storage container is needed.
+
+  adminer:
+    # Dev-only DB UI. Do NOT include in prod compose.
+    image: adminer:4.8.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - pgmgr-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - dev-tools

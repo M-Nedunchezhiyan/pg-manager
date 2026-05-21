@@ -1,0 +1,24 @@
+{
+  "name": "@pg/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'apps/worker is deprecated — see DEPRECATED.md; skipping build.'",
+    "dev": "echo 'apps/worker is deprecated. Cron lives in apps/web/src/app/api/cron/'",
+    "lint": "echo 'apps/worker is deprecated — skipping lint'",
+    "typecheck": "echo 'apps/worker is deprecated — skipping typecheck'"
+  },
+  "dependencies": {
+    "@pg/db": "workspace:*",
+    "bullmq": "5.28.1",
+    "ioredis": "5.4.1",
+    "pino": "9.5.0",
+    "pino-pretty": "13.0.0",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "22.9.0",
+    "tsx": "4.19.2",
+    "typescript": "5.6.3"
+  }
+}

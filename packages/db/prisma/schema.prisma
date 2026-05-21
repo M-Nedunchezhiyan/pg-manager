@@ -1,0 +1,472 @@
+// PG Manager — data model.
+// Naming: singular models, snake_case at DB level via @map.
+// All money in INR paise (Int) — never store currency as float.
+// All sensitive PII (id_proof_url, encrypted_*) stays out of logs (enforced in api layer).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Supabase: DATABASE_URL points at the pgBouncer pooler (port 6543),
+  // DIRECT_URL at the direct connection (port 5432) — needed for migrations.
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────────
+
+enum PGType {
+  MALE
+  FEMALE
+  COED
+}
+
+enum AllowedGender {
+  MALE
+  FEMALE
+  ANY
+}
+
+enum BedStatus {
+  VACANT
+  OCCUPIED
+  BLOCKED
+  NOTICE_PERIOD
+}
+
+enum ResidentStatus {
+  ACTIVE
+  NOTICE
+  INACTIVE
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CARD
+  OTHER
+}
+
+enum PaymentKind {
+  RENT
+  ADVANCE
+  LATE_FEE
+  REFUND
+  ADJUSTMENT
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  SNACKS
+  DINNER
+}
+
+enum ExpenseCategory {
+  ELECTRICITY
+  WATER
+  GAS
+  INTERNET
+  SALARY
+  GROCERY
+  REPAIR
+  MAINTENANCE
+  RENT
+  TAX
+  OTHER
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+}
+
+enum NotificationType {
+  RENT_DUE
+  RENT_OVERDUE
+  RESIDENT_JOINED
+  RESIDENT_LEAVING
+  PAYMENT_RECEIVED
+  SYSTEM
+}
+
+// ─── Auth ──────────────────────────────────────────────────────────────────
+
+// App-level user. Authentication itself lives in Supabase's `auth.users`
+// (managed by Supabase Auth). This row stores app-specific data (role, name)
+// and joins via `authId` → auth.users.id. A Postgres trigger creates a row
+// here whenever someone signs up; see migrations.
+model User {
+  id        String   @id @default(cuid())
+  authId    String?  @unique @map("auth_id") @db.Uuid  // → auth.users.id; null only during a brief sync window
+  email     String   @unique
+  name      String   @default("")
+  role      UserRole @default(MANAGER)
+  isActive  Boolean  @default(true) @map("is_active")
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  pgScopes      UserPGScope[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+// Manager → PGs they're allowed to access. OWNER bypasses this check.
+model UserPGScope {
+  userId String @map("user_id")
+  pgId   String @map("pg_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pg   PG   @relation(fields: [pgId], references: [id], onDelete: Cascade)
+
+  @@id([userId, pgId])
+  @@map("user_pg_scopes")
+}
+
+// ─── PG core ───────────────────────────────────────────────────────────────
+
+model PG {
+  id          String   @id @default(cuid())
+  name        String
+  type        PGType
+  address     String
+  city        String
+  state       String
+  pincode     String   @db.VarChar(10)
+  imageUrl    String?  @map("image_url")
+  phone       String?  @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  floors        Floor[]
+  residents     Resident[]
+  settings      PGSettings?
+  foodGroups    FoodGroup[]
+  dailyMenus    DailyMenu[]
+  expenses      Expense[]
+  scopedUsers   UserPGScope[]
+  sharingTypes  SharingType[]
+
+  @@index([isActive])
+  @@map("pgs")
+}
+
+model PGSettings {
+  id                 String   @id @default(cuid())
+  pgId               String   @unique @map("pg_id")
+  advanceMonths      Int      @default(2) @map("advance_months")
+  dueDaysAfterJoin   Int      @default(3) @map("due_days_after_join")
+  lateFeePerDay      Int      @default(0) @map("late_fee_per_day")     // paise
+  noticeDays         Int      @default(30) @map("notice_days")
+  currency           String   @default("INR")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  pg PG @relation(fields: [pgId], references: [id], onDelete: Cascade)
+
+  @@map("pg_settings")
+}
+
+model Floor {
+  id             String        @id @default(cuid())
+  pgId           String        @map("pg_id")
+  number         Int
+  name           String?
+  allowedGender  AllowedGender @default(ANY) @map("allowed_gender")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  pg    PG     @relation(fields: [pgId], references: [id], onDelete: Cascade)
+  rooms Room[]
+
+  @@unique([pgId, number])
+  @@map("floors")
+}
+
+model SharingType {
+  id           String   @id @default(cuid())
+  pgId         String   @map("pg_id")
+  name         String   // e.g. "2-Sharing"
+  capacity     Int      // beds per room
+  monthlyRent  Int      @map("monthly_rent")  // paise
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  pg    PG     @relation(fields: [pgId], references: [id], onDelete: Cascade)
+  rooms Room[]
+
+  @@unique([pgId, name])
+  @@map("sharing_types")
+}
+
+model Room {
+  id            String   @id @default(cuid())
+  floorId       String   @map("floor_id")
+  sharingTypeId String   @map("sharing_type_id")
+  number        String   // "101", "A-2"
+  rentOverride  Int?     @map("rent_override")  // paise; null = use sharing type rent
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  floor       Floor       @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  sharingType SharingType @relation(fields: [sharingTypeId], references: [id])
+  beds        Bed[]
+
+  @@unique([floorId, number])
+  @@map("rooms")
+}
+
+model Bed {
+  id        String    @id @default(cuid())
+  roomId    String    @map("room_id")
+  label     String    // "A", "B", "Bed-1"
+  status    BedStatus @default(VACANT)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  room        Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  allocations Allocation[]
+
+  @@unique([roomId, label])
+  @@index([status])
+  @@map("beds")
+}
+
+// ─── Residents ─────────────────────────────────────────────────────────────
+
+model Resident {
+  id                   String         @id @default(cuid())
+  pgId                 String         @map("pg_id")
+  fullName             String         @map("full_name")
+  // Phone stored encrypted at rest; phoneHash is used for unique lookups/search.
+  phoneEncrypted       String         @map("phone_encrypted")
+  phoneHash            String         @unique @map("phone_hash")
+  alternatePhone       String?        @map("alternate_phone_encrypted")
+  email                String?
+  gender               AllowedGender
+  dob                  DateTime?      @db.Date
+  photoUrl             String?        @map("photo_url")
+  idProofType          String?        @map("id_proof_type")   // aadhaar, pan, license, etc
+  idProofUrl           String?        @map("id_proof_url")    // signed S3 key
+  idProofNumberHash    String?        @map("id_proof_number_hash")
+
+  // Home + work
+  homeAddress          String         @map("home_address")
+  homeCity             String         @map("home_city")
+  homeState            String         @map("home_state")
+  primaryContactName   String         @map("primary_contact_name")
+  primaryContactPhoneEncrypted String  @map("primary_contact_phone_encrypted")
+  workOrInstitution    String         @map("work_or_institution")
+  workAddress          String?        @map("work_address")
+
+  // Stay
+  joinedOn             DateTime       @map("joined_on") @db.Date
+  dueDayOfMonth        Int            @map("due_day_of_month")  // computed: day(joinedOn) + dueDaysAfterJoin
+  withFood             Boolean        @default(true) @map("with_food")
+  status               ResidentStatus @default(ACTIVE)
+  noticeGivenOn        DateTime?      @map("notice_given_on") @db.Date
+  expectedLeavingOn    DateTime?      @map("expected_leaving_on") @db.Date
+  actualLeavingOn      DateTime?      @map("actual_leaving_on") @db.Date
+
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  pg          PG           @relation(fields: [pgId], references: [id])
+  allocations Allocation[]
+  payments    Payment[]
+  advances    Advance[]
+
+  @@index([pgId, status])
+  @@index([fullName])
+  @@map("residents")
+}
+
+model Allocation {
+  id         String    @id @default(cuid())
+  residentId String    @map("resident_id")
+  bedId      String    @map("bed_id")
+  fromDate   DateTime  @map("from_date") @db.Date
+  toDate     DateTime? @map("to_date") @db.Date  // null = currently allocated
+  rentSnapshot Int     @map("rent_snapshot")     // rent at time of allocation, paise
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  resident Resident @relation(fields: [residentId], references: [id])
+  bed      Bed      @relation(fields: [bedId], references: [id])
+
+  @@index([residentId])
+  @@index([bedId, toDate])
+  @@map("allocations")
+}
+
+// ─── Payments ──────────────────────────────────────────────────────────────
+
+model Payment {
+  id          String        @id @default(cuid())
+  residentId  String        @map("resident_id")
+  kind        PaymentKind
+  // forMonth/forYear: which billing period this payment covers (RENT only).
+  forMonth    Int?          @map("for_month")  // 1-12
+  forYear     Int?          @map("for_year")
+  amount      Int           // paise (always positive; refunds use REFUND kind)
+  lateFee     Int           @default(0) @map("late_fee")
+  paidOn      DateTime      @map("paid_on") @db.Date
+  method      PaymentMethod
+  reference   String?       // UPI ref, cheque no, etc — no full card numbers
+  receiptUrl  String?       @map("receipt_url")
+  notes       String?       @db.VarChar(1000)
+  recordedBy  String        @map("recorded_by")  // user id
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  resident Resident @relation(fields: [residentId], references: [id])
+
+  @@unique([residentId, kind, forMonth, forYear], name: "unique_rent_period")
+  @@index([residentId, paidOn])
+  @@map("payments")
+}
+
+model Advance {
+  id             String   @id @default(cuid())
+  residentId     String   @map("resident_id")
+  monthsCovered  Int      @map("months_covered")
+  amount         Int      // paise
+  paidOn         DateTime @map("paid_on") @db.Date
+  refundedAmount Int      @default(0) @map("refunded_amount")
+  refundedOn     DateTime? @map("refunded_on") @db.Date
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  resident Resident @relation(fields: [residentId], references: [id])
+
+  @@index([residentId])
+  @@map("advances")
+}
+
+// ─── Food management ───────────────────────────────────────────────────────
+
+model FoodItem {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  groupItems FoodGroupItem[]
+  menuItems  DailyMenuItem[]
+
+  @@map("food_items")
+}
+
+model FoodGroup {
+  id        String   @id @default(cuid())
+  pgId      String   @map("pg_id")
+  name      String   // "South Indian Tiffin"
+  mealType  MealType @map("meal_type")
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  pg    PG              @relation(fields: [pgId], references: [id], onDelete: Cascade)
+  items FoodGroupItem[]
+  menus DailyMenu[]
+
+  @@unique([pgId, name, mealType])
+  @@map("food_groups")
+}
+
+model FoodGroupItem {
+  groupId String @map("group_id")
+  itemId  String @map("item_id")
+  sortOrder Int  @default(0) @map("sort_order")
+
+  group FoodGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  item  FoodItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, itemId])
+  @@map("food_group_items")
+}
+
+model DailyMenu {
+  id        String   @id @default(cuid())
+  pgId      String   @map("pg_id")
+  date      DateTime @db.Date
+  mealType  MealType @map("meal_type")
+  groupId   String?  @map("group_id")  // optional: use group, OR direct items
+  createdAt DateTime @default(now()) @map("created_at")
+
+  pg    PG              @relation(fields: [pgId], references: [id], onDelete: Cascade)
+  group FoodGroup?      @relation(fields: [groupId], references: [id])
+  items DailyMenuItem[]
+
+  @@unique([pgId, date, mealType])
+  @@index([date])
+  @@map("daily_menus")
+}
+
+model DailyMenuItem {
+  menuId String @map("menu_id")
+  itemId String @map("item_id")
+
+  menu DailyMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  item FoodItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([menuId, itemId])
+  @@map("daily_menu_items")
+}
+
+// ─── Expenses ──────────────────────────────────────────────────────────────
+
+model Expense {
+  id             String          @id @default(cuid())
+  pgId           String          @map("pg_id")
+  category       ExpenseCategory
+  amount         Int             // paise
+  spentOn        DateTime        @map("spent_on") @db.Date
+  note           String?         @db.VarChar(1000)
+  attachmentUrl  String?         @map("attachment_url")
+  recordedBy     String          @map("recorded_by")
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  pg PG @relation(fields: [pgId], references: [id], onDelete: Cascade)
+
+  @@index([pgId, spentOn])
+  @@index([category])
+  @@map("expenses")
+}
+
+// ─── Notifications & audit ─────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  body      String           @db.VarChar(2000)
+  payload   Json?
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  action    String   // "resident.create", "payment.update", ...
+  entity    String
+  entityId  String?  @map("entity_id")
+  pgId      String?  @map("pg_id")
+  before    Json?
+  after     Json?
+  ipHash    String?  @map("ip_hash")
+  userAgent String?  @map("user_agent") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

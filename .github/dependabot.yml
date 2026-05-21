@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 10
+    groups:
+      types:
+        patterns: ['@types/*']
+      nest:
+        patterns: ['@nestjs/*']
+      next:
+        patterns: ['next', 'eslint-config-next', '@next/*']
+      react:
+        patterns: ['react', 'react-dom', '@types/react*']
+    versioning-strategy: increase
+    labels: ['deps']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    labels: ['ci']
+
+  - package-ecosystem: docker
+    directory: /apps/api
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /apps/web
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /apps/worker
+    schedule: { interval: weekly }

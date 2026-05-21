@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter @pg/web build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "nextjs",
+  "outputDirectory": "apps/web/.next",
+  "crons": [
+    { "path": "/api/cron/rent-due-scan", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/keepalive",      "schedule": "0 */4 * * *" }
+  ]
+}

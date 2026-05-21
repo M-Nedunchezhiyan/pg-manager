@@ -1,0 +1,43 @@
+**/node_modules
+**/dist
+**/build
+**/.next
+**/.turbo
+**/coverage
+**/.cache
+
+# Secrets — must never reach images
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+.secrets/
+
+# Version control
+.git
+.gitignore
+.github
+
+# Dev/test files
+**/*.test.ts
+**/*.spec.ts
+**/__tests__
+**/test
+**/tests
+**/.vscode
+**/.idea
+**/*.md
+!README.md
+
+# Docker
+docker/data
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db

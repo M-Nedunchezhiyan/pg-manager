@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Turbo
+.turbo/
+
+# Test
+coverage/
+*.lcov
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment & secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Prisma
+packages/db/prisma/migrations/dev.db*
+
+# Docker volumes
+docker/data/
+
+# Local upload storage (default STORAGE_ROOT)
+.data/
+.uploads/
+
+# Misc
+*.tar.gz
+*.zip
+.cache/
+tmp/
+temp/
