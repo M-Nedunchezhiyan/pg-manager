@@ -221,10 +221,60 @@ Each handler:
 3. Calls the same service-class method as the NestJS controller did.
 4. Returns `NextResponse.json(result)`.
 
-**Done in this commit:** PGs, Residents, Payments routes ported as templates.  
-**Remaining (mechanical port using the same pattern):** Floors, Sharing Types, Rooms, Beds, Food, Expenses, Notifications, Uploads, Dashboard.
+**Done in this commit** — endpoints that already work after deploy:
 
-The service classes (`PgService`, `ResidentService`, etc.) are **framework-agnostic** — they take Prisma + AuditService and return data. They were copied verbatim from `apps/api/src/modules/*/service.ts` into `apps/web/src/server/services/*`.
+| Method + path | Handler file |
+|---|---|
+| `GET  /api/auth/me` | `app/api/auth/me/route.ts` |
+| `GET  /api/pgs` | `app/api/pgs/route.ts` |
+| `POST /api/pgs` | same |
+| `GET  /api/pgs/[pgId]` | `app/api/pgs/[pgId]/route.ts` |
+| `PATCH /api/pgs/[pgId]` | same |
+| `DELETE /api/pgs/[pgId]` | same |
+| `PUT  /api/pgs/[pgId]/settings` | `app/api/pgs/[pgId]/settings/route.ts` |
+| `GET  /api/residents?pgId=…&search=…&status=…` | `app/api/residents/route.ts` |
+| `POST /api/residents/onboard` | `app/api/residents/onboard/route.ts` |
+| `GET  /api/residents/[id]` | `app/api/residents/[id]/route.ts` |
+| `PATCH /api/residents/[id]` | same |
+| `POST /api/residents/[id]/notice` | `app/api/residents/[id]/notice/route.ts` |
+| `DELETE /api/residents/[id]/notice` *(cancel notice)* | same |
+| `POST /api/residents/[id]/relieve` | `app/api/residents/[id]/relieve/route.ts` |
+| `GET  /api/cron/rent-due-scan` *(auth: CRON_SECRET)* | `app/api/cron/rent-due-scan/route.ts` |
+| `GET  /api/cron/keepalive` *(auth: CRON_SECRET)* | `app/api/cron/keepalive/route.ts` |
+
+**Remaining to port** — same pattern as PGs/Residents. Each follows the recipe in `pg.service.ts` + `app/api/pgs/route.ts`:
+
+| Lib call from apps/web/src/lib/ | Needed Route Handler | Service source to port |
+|---|---|---|
+| `floors.ts: listFloors, createFloor, updateFloor, deleteFloor` | `/api/floors`, `/api/floors/[id]` | `apps/api/src/modules/floor/floor.service.ts` |
+| `floors.ts: listSharingTypes, createSharingType, updateSharingType, deleteSharingType` | `/api/sharing-types`, `/api/sharing-types/[id]` | `apps/api/src/modules/sharing-type/sharing-type.service.ts` |
+| `rooms.ts: listRoomsByPg, createRoom, updateRoom, deleteRoom` | `/api/rooms`, `/api/rooms/[id]` | `apps/api/src/modules/room/room.service.ts` |
+| `rooms.ts: getBedMap, updateBed` | `/api/beds/map`, `/api/beds/[id]` | `apps/api/src/modules/bed/bed.service.ts` |
+| `payments.ts: getLedger, getPGDues, listPaymentsForResident, recordPayment` | `/api/payments/ledger/[id]`, `/api/payments/dues`, `/api/payments/resident/[id]`, `/api/payments` | `apps/api/src/modules/payment/payment.service.ts` |
+| `expenses.ts: listExpenses, createExpense, deleteExpense` | `/api/expenses`, `/api/expenses/[id]` | `apps/api/src/modules/expense/expense.service.ts` |
+| `food.ts: items/groups/menus + apply-defaults` | `/api/food/items[/...]`, `/api/food/groups[/...]`, `/api/food/menus[/...]` | `apps/api/src/modules/food/food.service.ts` |
+| `notifications.ts: list, read, read-all` | `/api/notifications[/...]` | `apps/api/src/modules/notification/notification.service.ts` |
+| `// dashboard fetch is inlined in pg/[pgId]/page.tsx` | `/api/dashboard/pg/[pgId]` | `apps/api/src/modules/dashboard/dashboard.service.ts` |
+
+**Porting recipe** (~5 minutes per endpoint):
+
+1. Copy `apps/api/src/modules/<X>/<X>.service.ts` → `apps/web/src/server/services/<X>.service.ts`.
+2. Strip NestJS DI: remove `@Injectable()`, change `constructor(prisma, audit)` to plain function imports of `prisma` from `@/server/common/prisma` and `recordAudit` from `@/server/common/audit`.
+3. Replace NestJS exceptions (`NotFoundException`, `ForbiddenException`, `BadRequestException`, `ConflictException`) with `throw new HttpError(<status>, <msg>)` from `@/server/common/session`.
+4. Move the DTO Zod schemas inline (or import from `apps/api/src/modules/<X>/<X>.dto.ts` if you want zero duplication).
+5. Create the Route Handler files mirroring the NestJS controller verbs. The template is `app/api/pgs/route.ts`:
+   ```ts
+   export async function GET(req: Request) {
+     try {
+       const user = await requireUser();
+       const result = await myServiceFn(user.sub, user.role);
+       return NextResponse.json(result);
+     } catch (err) { return errorResponse(err); }
+   }
+   ```
+6. For mutating endpoints, pass `reqMeta(req)` as the last arg so audit logs capture IP + UA.
+
+That's the whole pattern. The build will pass as long as the file paths match what `lib/*.ts` calls.
 
 ---
 

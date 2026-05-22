@@ -2,6 +2,9 @@ import { QueryProvider } from '@/components/query-provider';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
 
+// Every page under (app) requires a session — never prerender them.
+export const dynamic = 'force-dynamic';
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <QueryProvider>

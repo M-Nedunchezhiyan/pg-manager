@@ -32,7 +32,7 @@ export default function LoginPage() {
     try {
       await login(values.email, values.password);
       const next = search.get('next') ?? '/';
-      router.replace(next.startsWith('/') ? next : '/');
+      router.replace((next.startsWith('/') ? next : '/') as never);
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Sign-in failed');
     }
