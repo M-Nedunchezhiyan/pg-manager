@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # ─── Stage 1: deps ─────────────────────────────────────────────────────────
-FROM node:22.11.0-alpine AS deps
+FROM node:26.2.0-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /repo
 
@@ -18,7 +18,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline
 
 # ─── Stage 2: build ────────────────────────────────────────────────────────
-FROM node:22.11.0-alpine AS build
+FROM node:26.2.0-alpine AS build
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /repo
 RUN corepack enable && corepack prepare pnpm@9.12.3 --activate
@@ -37,7 +37,7 @@ RUN pnpm --filter @pg/api build
 RUN pnpm --filter @pg/api --prod deploy /out
 
 # ─── Stage 3: runtime ──────────────────────────────────────────────────────
-FROM node:22.11.0-alpine AS runtime
+FROM node:26.2.0-alpine AS runtime
 RUN apk add --no-cache openssl tini && \
     addgroup -S app && adduser -S -G app app
 
