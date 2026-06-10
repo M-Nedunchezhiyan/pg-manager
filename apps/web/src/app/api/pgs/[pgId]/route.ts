@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 
+import { errorResponse, HttpError, requireUser } from '@/server/common/session';
 import {
   UpdatePgSchema,
   getPG,
   removePG,
   updatePG,
 } from '@/server/services/pg.service';
-import { errorResponse, HttpError, requireUser } from '@/server/common/session';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ pgId: string }> }) {
   try {

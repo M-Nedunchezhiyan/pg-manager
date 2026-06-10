@@ -7,8 +7,6 @@ updates:
     groups:
       types:
         patterns: ['@types/*']
-      nest:
-        patterns: ['@nestjs/*']
       next:
         patterns: ['next', 'eslint-config-next', '@next/*']
       react:
@@ -20,13 +18,3 @@ updates:
     directory: /
     schedule: { interval: weekly }
     labels: ['ci']
-
-  - package-ecosystem: docker
-    directory: /apps/api
-    schedule: { interval: weekly }
-  - package-ecosystem: docker
-    directory: /apps/web
-    schedule: { interval: weekly }
-  - package-ecosystem: docker
-    directory: /apps/worker
-    schedule: { interval: weekly }

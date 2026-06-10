@@ -12,7 +12,8 @@ const nextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   // Vercel handles the build output natively; no `output: 'standalone'` needed.
-  experimental: { typedRoutes: true },
+  // typedRoutes is a stable top-level option in Next 16 (was experimental in 15).
+  typedRoutes: true,
 
   // argon2 is a native module — keep it external so Next bundles it for the
   // Node.js runtime (used by /api/auth/login) instead of trying to bundle it.

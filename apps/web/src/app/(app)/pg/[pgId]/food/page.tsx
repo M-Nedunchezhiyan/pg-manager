@@ -226,7 +226,8 @@ function GroupsCard({
                 type="button"
                 onClick={() => {
                   const next = new Set(pickedIds);
-                  on ? next.delete(it.id) : next.add(it.id);
+                  if (on) next.delete(it.id);
+                  else next.add(it.id);
                   setPickedIds(next);
                 }}
                 className={`rounded-full px-2 py-0.5 text-xs ring-1 transition ${

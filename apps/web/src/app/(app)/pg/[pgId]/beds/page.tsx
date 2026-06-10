@@ -2,11 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 
 import { errorMessage } from '@/lib/api';
 import { getBedMap, updateBed, type BedStatus } from '@/lib/rooms';
 import { cn, paiseToRupees } from '@/lib/utils';
-import { useState } from 'react';
 
 const STATUS_STYLES: Record<BedStatus, { bg: string; ring: string; label: string }> = {
   VACANT: { bg: 'bg-primary-soft', ring: 'ring-primary/30', label: 'Vacant' },

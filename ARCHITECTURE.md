@@ -26,7 +26,7 @@ keep all sensitive data encrypted, and own the auth layer (no per-user SaaS cost
 
 | Concern            | Technology                                                        |
 | ------------------ | ----------------------------------------------------------------- |
-| App framework      | **Next.js 15** (App Router) — UI + API in one deployable          |
+| App framework      | **Next.js 16** (App Router, React 19) — UI + API in one deployable |
 | Hosting            | **Vercel** (serverless functions + edge middleware + cron)        |
 | Database           | **Neon** serverless Postgres                                      |
 | ORM                | **Prisma 5**                                                      |
@@ -47,20 +47,18 @@ Cost: Vercel Hobby + Neon Free + Supabase Free + Cloudflare DNS = **₹0**.
 ```
 pg-manager/
 ├── apps/
-│   ├── web/          ← THE app: Next.js 15 (UI + /api routes + cron). Deployed to Vercel.
-│   ├── api/          ← legacy NestJS API (DEPRECATED, not deployed — kept for rollback)
-│   └── worker/       ← legacy BullMQ worker (DEPRECATED — its jobs are now Vercel cron)
+│   └── web/          ← THE app: Next.js 16 (UI + /api routes + cron). Deployed to Vercel.
 ├── packages/
 │   ├── db/           ← @pg/db: Prisma schema, generated client, seed
 │   └── types/        ← @pg/types: shared Zod schemas / TS types
-├── docker/           ← local Postgres/Redis/MinIO for the legacy stack
+├── eslint.config.mjs ← flat ESLint config (security-focused)
 ├── NEON_SETUP.md  ARCHITECTURE.md  README.md  SECURITY.md  MIGRATION.md
 └── vercel.json       ← build command + cron schedules
 ```
 
-**Only `apps/web` + `packages/*` are live.** `apps/api` and `apps/worker` are the
-previous self-hosted stack, retained for emergency rollback and deleted once the
-serverless stack is proven (see MIGRATION.md § Rollback).
+**`apps/web` + `packages/*` are the entire codebase.** The original self-hosted
+stack (`apps/api` NestJS, `apps/worker` BullMQ, `docker/`) has been removed —
+recoverable from git history if ever needed (see MIGRATION.md for that history).
 
 ### Inside `apps/web/src`
 
@@ -296,7 +294,7 @@ sends automatically — nothing else can invoke them).
 | `/api/cron/rent-due-scan`   | `0 6 * * *`     | Notify owner + scoped managers of residents whose rent is due today/tomorrow. **Idempotent** via a `dedupKey` on the notification. |
 | `/api/cron/keepalive`       | `0 */4 * * *`   | `SELECT 1` against Neon every 4 h so the free-tier compute doesn't scale-to-zero and cold-start. |
 
-These replace the old BullMQ worker (`apps/worker`, deprecated).
+These replace the old BullMQ worker (`apps/worker`, since removed).
 
 ---
 
@@ -363,10 +361,10 @@ See `apps/web/.env.example` (deploy) and `.env.example` (root) for the full set.
 
 ---
 
-## 15. Legacy / deprecated
+## 15. Legacy / removed
 
-`apps/api` (NestJS) and `apps/worker` (BullMQ), plus `docker/` (Postgres, Redis,
-MinIO), are the original self-hosted stack. They are **not deployed** and are kept
-only for rollback. The Prisma schema is shared, so the old API can point at a
-Postgres instance if ever needed. Delete them once the serverless stack is proven
-(MIGRATION.md § "What stays, what's deleted").
+The original self-hosted stack — `apps/api` (NestJS), `apps/worker` (BullMQ), and
+`docker/` (Postgres, Redis, MinIO) — has been **removed** from the repo. Its
+responsibilities now live in `apps/web`: the NestJS controllers became Route
+Handlers, and the BullMQ jobs became Vercel Cron. The old code is recoverable from
+git history; `MIGRATION.md` documents the original migration for reference.

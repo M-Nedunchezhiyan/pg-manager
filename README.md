@@ -1,7 +1,7 @@
 # PG Manager
 
 Multi-tenant PG (Paying Guest) management — residents, rooms, rent, food, expenses.
-Single Next.js 15 app, deployed to **Vercel + Supabase** for **₹0/month**.
+Single Next.js 16 app, deployed to **Vercel + Neon + Supabase** for **₹0/month**.
 
 > **Want the full picture?** See [`ARCHITECTURE.md`](./ARCHITECTURE.md) — how auth,
 > the database, storage, and request processing all fit together. New to all this?
@@ -16,7 +16,7 @@ Single Next.js 15 app, deployed to **Vercel + Supabase** for **₹0/month**.
 ## Stack (current)
 
 - **Monorepo**: Turborepo + pnpm workspaces
-- **Web + API + cron** (`apps/web`): Next.js 15 App Router. Pages, Route Handlers under `app/api/`, scheduled crons via `vercel.json` → deployed to Vercel.
+- **Web + API + cron** (`apps/web`): Next.js 16 App Router (React 19). Pages, Route Handlers under `app/api/`, scheduled crons via `vercel.json` → deployed to Vercel.
 - **Database**: Neon serverless Postgres (pooled endpoint for the app, direct endpoint for migrations). Setup: [`NEON_SETUP.md`](./NEON_SETUP.md).
 - **Auth**: Self-hosted — email + password (argon2id-hashed in our own Neon DB), signed httpOnly session-cookie JWT. No external auth provider; roles/scopes drive authorization.
 - **Object storage**: Supabase Storage, private bucket `pg-uploads`, accessed via short-lived signed URLs.
@@ -61,23 +61,21 @@ Then sign in at `/login`. Auth is a signed httpOnly session cookie; see [NEON_SE
 
 ```
 apps/
-  web/        Next.js — UI + Route Handlers + Vercel Cron (THIS IS THE APP)
-  api/        DEPRECATED — old NestJS API, kept as reference for ports
-  worker/     DEPRECATED — old BullMQ worker, kept as reference
+  web/        Next.js 16 — UI + Route Handlers + Vercel Cron (THE app)
 packages/
-  db/         Prisma schema + generated client + auth-sync SQL migration
+  db/         Prisma schema + generated client + seed
   types/      Shared Zod schemas / TS types
 .github/
   workflows/  ci.yml, security.yml
   dependabot.yml
+eslint.config.mjs  Flat ESLint config (security-focused)
 vercel.json   Vercel project config (cron schedules)
 MIGRATION.md  Step-by-step deploy guide
 ```
 
-The Route Handlers under `apps/web/src/app/api/` replace the old NestJS controllers.
 Business logic lives in `apps/web/src/server/services/` (framework-agnostic functions
-that take `prisma` + emit audit log entries). See MIGRATION.md § Phase 7 for the
-porting pattern and the list of endpoints still to port.
+that take `prisma` + emit audit log entries); Route Handlers under
+`apps/web/src/app/api/` stay thin (auth → validate → delegate → respond).
 
 ---
 
@@ -113,17 +111,15 @@ See [SECURITY.md](./SECURITY.md). Highlights as they apply to the current stack:
 
 ## Roadmap
 
-**v1 (in progress)** — auth ✅, PG/floor/room/bed CRUD, resident onboarding stepper ✅, bed map ✅, rent ledger, food management, expenses, dashboards. UI is complete; some Route Handlers still need to be ported from the deprecated NestJS code (see MIGRATION.md § Phase 7 checklist).
+**v1 (in progress)** — auth ✅, PG/floor/room/bed CRUD, resident onboarding stepper ✅, bed map ✅, rent ledger, food management, expenses, dashboards.
 
 **v2** — maintenance/complaints (QR form), inventory, visitor log, GST invoicing, mobile app.
 
 ---
 
-## Legacy stack (Docker / NestJS / BullMQ)
+## Legacy stack (removed)
 
-The original Docker-based deployment is preserved in `apps/api/`, `apps/worker/`, and `docker/`. It is no longer the supported way to run this app, but the files are kept so:
-
-1. The service-class business logic can be referenced when porting remaining controllers.
-2. You can roll back to it locally if Supabase / Vercel are blocked for any reason (see MIGRATION.md § Rollback).
-
-To delete the legacy stack once you're confident on Vercel + Supabase, remove `apps/api/`, `apps/worker/`, `docker/`, and the corresponding deps from the root `package.json`. That cleanup is documented in MIGRATION.md § "What stays, what's deleted".
+The original self-hosted stack — `apps/api/` (NestJS), `apps/worker/` (BullMQ), and
+`docker/` (Postgres/Redis/MinIO) — has been **removed**. The live app runs entirely on
+Vercel + Neon + Supabase. If you ever need the old code, it's recoverable from git
+history (see `MIGRATION.md` for the original migration runbook).

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { PgSettingsSchema, updatePgSettings } from '@/server/services/pg.service';
 import { errorResponse, HttpError, requireUser } from '@/server/common/session';
+import { PgSettingsSchema, updatePgSettings } from '@/server/services/pg.service';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ pgId: string }> }) {
   try {
