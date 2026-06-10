@@ -14,6 +14,10 @@ const nextConfig = {
   // Vercel handles the build output natively; no `output: 'standalone'` needed.
   experimental: { typedRoutes: true },
 
+  // argon2 is a native module — keep it external so Next bundles it for the
+  // Node.js runtime (used by /api/auth/login) instead of trying to bundle it.
+  serverExternalPackages: ['argon2'],
+
   // ESLint plugins live at the monorepo root and aren't all hoisted into apps/web;
   // run `pnpm lint` separately when you want lint feedback.
   eslint: { ignoreDuringBuilds: true },

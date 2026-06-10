@@ -42,12 +42,12 @@ export default function SettingsPage() {
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary-deep" />
               <div>
                 <p>
-                  Sign-in and password reset are managed by Supabase Auth. To change your password,
-                  use the &quot;Forgot password&quot; flow on the sign-in page.
+                  Sign-in uses a password stored securely (argon2-hashed) in our own database.
+                  Your session is a signed, httpOnly cookie that expires after 7 days.
                 </p>
                 <p className="mt-2 text-xs text-muted">
-                  Two-factor authentication can be enabled in your Supabase user profile. We&apos;ll wire
-                  it into the app in a future release.
+                  To change the password, re-run the owner seed with a new
+                  SEED_OWNER_PASSWORD. A self-service password-change screen is planned.
                 </p>
               </div>
             </div>

@@ -1,5 +1,6 @@
-// Pings the database every 4 hours so Supabase doesn't auto-pause the project
-// after 7 days of inactivity. One trivial query is enough to count as activity.
+// Pings the database every 4 hours so Neon doesn't auto-suspend the compute
+// after a period of inactivity (free tier scale-to-zero). One trivial query is
+// enough to keep it warm and avoid a cold-start delay on the next real request.
 //
 // Schedule defined in vercel.json. Authorization enforced via CRON_SECRET.
 

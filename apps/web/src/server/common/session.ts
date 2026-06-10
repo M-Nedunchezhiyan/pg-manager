@@ -1,17 +1,19 @@
-// Resolves the current authenticated app User from the request's Supabase
-// session cookie. Throws 401 if no session, 403 if no matching app User.
+// Resolves the current authenticated app User from the request's session
+// cookie (a JWT we signed at login). Throws 401 if no/invalid session, 403 if
+// the linked User is missing or deactivated.
 //
-// Returns a typed user with role + scoped PG ids — same shape NestJS used.
+// The JWT carries the User.id; we always re-load the row so role + PG scopes
+// are fresh (a revoked manager loses access on their next request, not in 7d).
 
 import { UserRole } from '@pg/db';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+import { SESSION_COOKIE, verifySession } from '@/server/common/jwt';
 import { prisma } from '@/server/common/prisma';
-import { createClient } from '@/lib/supabase/server';
 
 export interface AppUser {
-  sub: string;        // App-level User.id (CUID)
-  authId: string;     // Supabase auth.users.id (UUID)
+  sub: string; // App-level User.id (CUID)
   email: string;
   name: string;
   role: UserRole;
@@ -19,28 +21,30 @@ export interface AppUser {
 }
 
 export class HttpError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
   }
 }
 
 export async function requireUser(): Promise<AppUser> {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) throw new HttpError(401, 'Not authenticated');
+  const jar = await cookies();
+  const session = await verifySession(jar.get(SESSION_COOKIE)?.value);
+  if (!session) throw new HttpError(401, 'Not authenticated');
 
   const appUser = await prisma.user.findUnique({
-    where: { authId: user.id },
+    where: { id: session.sub },
     include: { pgScopes: { select: { pgId: true } } },
   });
 
   if (!appUser || !appUser.isActive) {
-    throw new HttpError(403, 'No app account linked to this login');
+    throw new HttpError(403, 'Account is not active');
   }
 
   return {
     sub: appUser.id,
-    authId: user.id,
     email: appUser.email,
     name: appUser.name,
     role: appUser.role,

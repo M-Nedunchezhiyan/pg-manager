@@ -1,6 +1,6 @@
-// Supabase-backed auth helpers. Replaces the previous custom JWT + Argon2 flow.
-
-import { createClient } from '@/lib/supabase/client';
+// Self-hosted credential auth. Talks to our own /api/auth/* route handlers,
+// which verify the password against the Neon `users` table and set an httpOnly
+// session cookie. No external auth provider.
 
 import { api } from './api';
 
@@ -13,26 +13,12 @@ export interface CurrentUser {
 }
 
 export async function login(email: string, password: string): Promise<{ user: CurrentUser }> {
-  const supabase = createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
-  const me = await fetchMe();
-  return { user: me };
-}
-
-export async function signup(email: string, password: string, name: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { name } },
-  });
-  if (error) throw new Error(error.message);
+  const { data } = await api.post<CurrentUser>('/auth/login', { email, password });
+  return { user: data };
 }
 
 export async function logout(): Promise<void> {
-  const supabase = createClient();
-  await supabase.auth.signOut();
+  await api.post('/auth/logout');
 }
 
 export async function fetchMe(): Promise<CurrentUser> {

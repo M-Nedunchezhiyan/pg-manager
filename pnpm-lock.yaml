@@ -237,6 +237,9 @@ importers:
       '@tanstack/react-query':
         specifier: 5.61.0
         version: 5.61.0(react@18.3.1)
+      argon2:
+        specifier: 0.41.1
+        version: 0.41.1
       axios:
         specifier: 1.7.7
         version: 1.7.7
@@ -246,6 +249,9 @@ importers:
       clsx:
         specifier: 2.1.1
         version: 2.1.1
+      jose:
+        specifier: 5.9.6
+        version: 5.9.6
       lucide-react:
         specifier: 0.460.0
         version: 0.460.0(react@18.3.1)
@@ -3693,6 +3699,9 @@ packages:
   jiti@1.21.7:
     resolution: {integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==}
     hasBin: true
+
+  jose@5.9.6:
+    resolution: {integrity: sha512-AMlnetc9+CV9asI19zHmrgS/WYsWUwCn2R7RzlbJWD7F9eWYUTGyBmU9o6PxngtLGOiDGPRu+Uc4fhKzbpteZQ==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -9301,6 +9310,8 @@ snapshots:
       - ts-node
 
   jiti@1.21.7: {}
+
+  jose@5.9.6: {}
 
   joycon@3.1.1: {}
 

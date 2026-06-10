@@ -10,8 +10,10 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  // Supabase: DATABASE_URL points at the pgBouncer pooler (port 6543),
-  // DIRECT_URL at the direct connection (port 5432) — needed for migrations.
+  // Neon: DATABASE_URL points at the POOLED endpoint (host has "-pooler"),
+  // used by the app/serverless. DIRECT_URL points at the DIRECT endpoint
+  // (no "-pooler") — required for migrations, which can't run over the pooler.
+  // See NEON_SETUP.md for how to obtain both.
   directUrl = env("DIRECT_URL")
 }
 
@@ -95,14 +97,13 @@ enum NotificationType {
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
-// App-level user. Authentication itself lives in Supabase's `auth.users`
-// (managed by Supabase Auth). This row stores app-specific data (role, name)
-// and joins via `authId` → auth.users.id. A Postgres trigger creates a row
-// here whenever someone signs up; see migrations.
+// App-level user. Authentication is self-hosted: the password is stored here
+// as an argon2id hash and verified at /api/auth/login, which issues a signed
+// session-cookie JWT. Role + UserPGScope drive all authorization.
 model User {
   id        String   @id @default(cuid())
-  authId    String?  @unique @map("auth_id") @db.Uuid  // → auth.users.id; null only during a brief sync window
   email     String   @unique
+  passwordHash String? @map("password_hash")  // argon2id; null until a password is set
   name      String   @default("")
   role      UserRole @default(MANAGER)
   isActive  Boolean  @default(true) @map("is_active")
