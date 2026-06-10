@@ -4,7 +4,8 @@ A complete walkthrough of how the system is built and how a request flows
 through it: the stack, the monorepo layout, authentication, authorization,
 the database, file storage, PII protection, background jobs, and deployment.
 
-> Companion docs: [`NEON_SETUP.md`](./NEON_SETUP.md) (database credentials),
+> Companion docs: [`ARCHITECTURE_DIAGRAM.md`](./ARCHITECTURE_DIAGRAM.md) (picture-first,
+> no-jargon version of this doc), [`NEON_SETUP.md`](./NEON_SETUP.md) (database credentials),
 > [`README.md`](./README.md) (quick start), [`SECURITY.md`](./SECURITY.md),
 > [`MIGRATION.md`](./MIGRATION.md) (history of how we got here).
 

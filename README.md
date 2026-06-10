@@ -4,7 +4,8 @@ Multi-tenant PG (Paying Guest) management — residents, rooms, rent, food, expe
 Single Next.js 15 app, deployed to **Vercel + Supabase** for **₹0/month**.
 
 > **Want the full picture?** See [`ARCHITECTURE.md`](./ARCHITECTURE.md) — how auth,
-> the database, storage, and request processing all fit together.
+> the database, storage, and request processing all fit together. New to all this?
+> [`ARCHITECTURE_DIAGRAM.md`](./ARCHITECTURE_DIAGRAM.md) explains it with pictures, no jargon.
 
 > **Deploying?** Start with [`MIGRATION.md`](./MIGRATION.md). It's a complete runbook:
 > Supabase project setup, Vercel project setup, env vars, the keepalive cron, and a
