@@ -18,7 +18,7 @@ jobs:
     name: pnpm audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v4
@@ -35,7 +35,7 @@ jobs:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -48,7 +48,7 @@ jobs:
     name: Trivy filesystem scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Run Trivy vulnerability scanner (fs)
@@ -70,7 +70,7 @@ jobs:
     name: Trivy IaC / Dockerfile scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: aquasecurity/trivy-action@0.28.0
@@ -90,7 +90,7 @@ jobs:
       matrix:
         language: ['javascript-typescript']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: github/codeql-action/init@v3
