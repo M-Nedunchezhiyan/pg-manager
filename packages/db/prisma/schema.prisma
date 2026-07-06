@@ -171,7 +171,7 @@ model PGSettings {
 
   pg PG @relation(fields: [pgId], references: [id], onDelete: Cascade)
 
-  @@map("pg_settings")
+  @@map("pg_manager_settings")
 }
 
 model Floor {
