@@ -7,9 +7,10 @@ Single Next.js 16 app, deployed to **Vercel + Neon + Supabase** for **₹0/month
 > the database, storage, and request processing all fit together. New to all this?
 > [`ARCHITECTURE_DIAGRAM.md`](./ARCHITECTURE_DIAGRAM.md) explains it with pictures, no jargon.
 
-> **Deploying?** Start with [`MIGRATION.md`](./MIGRATION.md). It's a complete runbook:
-> Supabase project setup, Vercel project setup, env vars, the keepalive cron, and a
-> "remaining endpoints" checklist with the porting recipe.
+> **Deploying?** Start with [`VERCEL_DEPLOYMENT.md`](./VERCEL_DEPLOYMENT.md) — the
+> current, accurate step-by-step guide for this stack (Neon + self-hosted auth +
+> Supabase Storage-only). `MIGRATION.md` is a historical record of the original
+> NestJS→Next.js migration and describes an earlier, superseded plan.
 
 ---
 

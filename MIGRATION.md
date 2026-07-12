@@ -1,3 +1,11 @@
+> **Historical document.** This describes the *original* migration plan, which
+> included moving Postgres and auth to Supabase. That plan was later revised:
+> Postgres moved to **Neon** instead, and auth stayed **self-hosted**
+> (argon2id + JWT) rather than switching to Supabase Auth — Supabase is only
+> used for file Storage today. This file is kept for historical context on
+> the NestJS→Next.js migration; for deploying the app as it exists now, use
+> [`VERCEL_DEPLOYMENT.md`](./VERCEL_DEPLOYMENT.md) instead.
+
 # Migration: pg-manager → Supabase + Vercel (free tier)
 
 Goal: take the current stack (NestJS API + BullMQ worker + Postgres + Redis + MinIO + custom auth) and run **all of it for ₹0** on Vercel + Supabase, deployable from a `git push`.

@@ -19,7 +19,8 @@ We aim to acknowledge within 72 hours and ship a fix or mitigation within 14 day
 | Session tokens | CSRF | SameSite=strict + CSRF token on state-changing requests |
 | Resident PII (phone, ID) | Database compromise | AES-256-GCM at rest with `PII_ENCRYPTION_KEY`; HMAC for searchable lookup |
 | Audit trail | Tampering | `audit_logs` append-only; row deletes not exposed via API |
-| Cross-PG data leak | Manager accessing another PG | `PGScopeGuard` enforces `UserPGScope` on every PG-scoped route |
+| Cross-PG data leak | Manager accessing another PG | `assertPgScope`/`assertOwner` enforce `UserPGScope` on every PG-scoped and owner-only route |
+| Session tokens | Info disclosure via decoded JWT (signed, not encrypted — role readable by anyone with the cookie) | Role encoded as an opaque id (`rid`), not the literal string; authorization never trusts the token's role anyway — `requireUser()` always re-checks it against the DB |
 | SQL injection | Untrusted input in queries | Prisma parameterized queries only; no raw SQL |
 | XSS | Untrusted HTML rendered | React escapes by default; strict CSP forbids inline scripts; user input never `dangerouslySetInnerHTML` |
 | Container escape | Malicious dep or image | Non-root user, `no-new-privileges`, minimal capabilities, Trivy scans |

@@ -192,7 +192,8 @@ schema + a couple of guards.
 
 - **Roles** — `User.role` ∈ { `OWNER`, `MANAGER` }.
 - **PG scoping** — `UserPGScope(userId, pgId)` lists which PGs a MANAGER may
-  access. OWNER bypasses scoping entirely.
+  access. OWNER bypasses scoping entirely. A PG has at most one manager
+  (`@@unique([pgId])`), but one manager may be assigned to several PGs.
 - **Enforcement** — `server/common/scope.ts`:
 
   ```ts
@@ -203,12 +204,31 @@ schema + a couple of guards.
     });
     if (!scope) throw new HttpError(403, 'No access to this PG');
   }
+
+  export function assertOwner(role) {
+    if (role !== UserRole.OWNER) throw new HttpError(403, 'Only the owner can perform this action');
+  }
   ```
 
-  Every mutating handler that targets a specific PG calls this before acting.
+  Every mutating handler that targets a specific PG calls `assertPgScope`
+  before acting; owner-only actions (creating/deleting a PG, assigning a
+  manager) call `assertOwner` instead.
 
-The session JWT carries the role for convenience, but the **authoritative** role
-and scopes always come from the freshly-loaded `User` row in `requireUser()`.
+- **Assigning managers** — `server/services/manager.service.ts` +
+  `app/api/pgs/[pgId]/manager/route.ts` (owner-only, `runtime = 'nodejs'`
+  since it hashes a password with argon2id). `POST` creates a brand-new
+  manager account (email/name in, a one-time generated password out) or, if
+  the email already belongs to an existing `MANAGER`, just links them to the
+  new PG too. `DELETE` unscopes a manager from one PG without touching the
+  account (so they can be reassigned elsewhere later). No UI/API to manage
+  `UserPGScope` existed before this; `assertPgScope`/`listPGs` already
+  enforced the resulting access boundaries.
+
+The session JWT carries the role for convenience — as an opaque id (`rid`),
+not the literal string, so decoding the cookie doesn't hand a casual reader a
+human-readable "role":"OWNER" flag (see `server/common/jwt.ts`) — but the
+**authoritative** role and scopes always come from the freshly-loaded `User`
+row in `requireUser()`.
 
 ---
 
