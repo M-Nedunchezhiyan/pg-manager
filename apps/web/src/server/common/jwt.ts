@@ -15,6 +15,20 @@ export interface SessionPayload {
   role: SessionRole;
 }
 
+// A JWT is signed, not encrypted — anyone holding the cookie can base64-decode
+// the payload (e.g. paste it into jwt.io) and read it, even though they can't
+// forge a new one without AUTH_SECRET. So the wire claim carries an opaque id
+// instead of a human-readable "role":"OWNER" flag — this isn't the security
+// boundary (the HMAC signature + httpOnly/secure cookie flags are), it just
+// avoids handing a casual cookie-reader an obvious "this one's high-value" tell.
+const ROLE_TO_RID: Record<SessionRole, string> = {
+  OWNER: 'k9f2x7',
+  MANAGER: 'p4m8q1',
+};
+const RID_TO_ROLE: Record<string, SessionRole> = Object.fromEntries(
+  Object.entries(ROLE_TO_RID).map(([role, rid]) => [rid, role as SessionRole]),
+);
+
 const ALG = 'HS256';
 export const SESSION_COOKIE = 'pg_session';
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days, in seconds
@@ -29,7 +43,7 @@ function secret(): Uint8Array {
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {
-  return new SignJWT({ email: payload.email, name: payload.name, role: payload.role })
+  return new SignJWT({ email: payload.email, name: payload.name, rid: ROLE_TO_RID[payload.role] })
     .setProtectedHeader({ alg: ALG })
     .setSubject(payload.sub)
     .setIssuedAt()
@@ -46,7 +60,10 @@ export async function verifySession(token: string | undefined): Promise<SessionP
       sub: payload.sub,
       email: String(payload.email ?? ''),
       name: String(payload.name ?? ''),
-      role: (payload.role as SessionRole) ?? 'MANAGER',
+      // Falls back to the least-privileged role for a missing/unrecognized rid
+      // (e.g. a pre-existing session signed before this change) — same
+      // fail-toward-least-privilege default this code already used for `role`.
+      role: RID_TO_ROLE[String(payload.rid ?? '')] ?? 'MANAGER',
     };
   } catch {
     return null;

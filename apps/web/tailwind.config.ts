@@ -48,6 +48,7 @@ const config: Config = {
         'radial-fade': 'radial-gradient(circle at top left, hsl(var(--primary) / 0.25), transparent 60%)',
       },
       borderRadius: { lg: '12px', md: '10px', sm: '6px', xl: '20px', '2xl': '28px' },
+      borderWidth: { DEFAULT: '1.5px' },
       boxShadow: {
         card: '0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06)',
         elevated: '0 8px 24px -8px rgba(6,78,59,0.16), 0 2px 8px -2px rgba(88,28,135,0.08)',

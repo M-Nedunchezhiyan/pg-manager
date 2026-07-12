@@ -33,10 +33,10 @@ export function Topbar() {
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-surface px-4">
-      <div className="flex flex-1 items-center gap-2">
-        <MobileNav />
-        <div className="flex w-full max-w-md items-center gap-2 rounded-full bg-bg px-3.5 py-1.5 transition focus-within:ring-2 focus-within:ring-primary/25">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-surface px-4">
+      <MobileNav />
+      <div className="flex flex-1 items-center justify-center">
+        <div className="flex w-full max-w-md items-center gap-2 rounded-full bg-bg px-3.5 py-0.5 transition focus-within:ring-2 focus-within:ring-primary/25">
           <Search className="h-4 w-4 shrink-0 text-muted" />
           <input
             type="search"

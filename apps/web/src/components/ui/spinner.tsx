@@ -19,8 +19,8 @@ export function Spinner({ size = 28, className }: { size?: number; className?: s
     >
       <defs>
         <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="hsl(160 84% 28%)" />
-          <stop offset="55%" stopColor="hsl(226 70% 56%)" />
+          <stop offset="0%" stopColor="hsl(201 96% 32%)" />
+          <stop offset="55%" stopColor="hsl(189 94% 43%)" />
           <stop offset="100%" stopColor="hsl(262 83% 58%)" />
         </linearGradient>
       </defs>

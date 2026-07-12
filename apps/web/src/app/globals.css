@@ -3,31 +3,35 @@
 @tailwind utilities;
 
 :root {
-  /* Emerald + violet theme — a white/green/violet gradient identity on a light-green canvas.
+  /* Ocean blue + violet theme — a white/blue/violet gradient identity on a light-blue canvas.
      Every color below is tuned so white text on a solid fill, and colored text on a light
      tint, both clear WCAG AA (4.5:1) — verified against white/near-white, not just eyeballed. */
-  --primary: 160 84% 28%; /* deepened from emerald-600 so white button text clears 4.5:1 */
-  --primary-soft: 152 68% 94%; /* airy mint */
-  --primary-deep: 84 208% 20%; /* #065f46 emerald-800 */
+  --primary: 201 96% 32%; /* deep ocean blue (~sky-700) — white button text clears 4.5:1 */
+  --primary-soft: 204 94% 94%; /* airy sky tint */
+  --primary-deep: 202 80% 24%; /* near-navy (~sky-900) */
   --primary-foreground: 0 0% 100%;
-  --gradient-mid: 226 70% 56%; /* indigo bridge so green→violet reads as a smooth aurora, not a hue jump */
+  --gradient-mid: 189 94% 43%; /* cyan/turquoise bridge so blue→violet reads as an ocean gradient */
 
   --accent: 262 83% 58%; /* violet-600 — already ~5.7:1 with white, left as-is */
   --accent-soft: 262 85% 96%;
   --accent-deep: 263 70% 42%;
 
-  --ink: 165 45% 7%; /* near-black forest, used for dark hero surfaces */
+  --ink: 215 55% 6%; /* near-black deep-sea navy, used for dark hero surfaces */
 
-  --bg: 150 45% 96%; /* light green page canvas instead of stark white */
-  --surface: 0 0% 100%; /* white cards float above the green canvas */
+  --bg: 204 45% 97%; /* light ocean-blue page canvas instead of stark white */
+  --surface: 0 0% 100%; /* white cards float above the blue canvas */
   --well: 210 18% 95%; /* neutral gray "recessed" tone for sub-cards nested inside a surface card */
-  --border: 155 18% 88%;
-  --text: 165 30% 10%;
-  --muted: 156 10% 40%; /* darkened from 45% — was borderline ~4.3:1, now a safe ~5.3:1 */
+  --border: 205 25% 65%; /* deepened from 88% lightness so borders read clearly, not just a hairline */
+  --text: 204 30% 10%;
+  --muted: 204 10% 40%; /* darkened from 45% — was borderline ~4.3:1, now a safe ~5.3:1 */
 
   --danger: 0 84% 48%; /* darkened from 60% so white button text clears 4.5:1 */
   --warn: 38 92% 32%; /* darkened from 50% — was ~2.1:1 as text, now ~4.9:1 */
-  --success: 160 84% 28%;
+  --success: 160 84% 28%; /* kept green on purpose — a semantic "success" color, independent of brand */
+}
+
+html {
+  font-size: 106.25%; /* ~17px base — a touch larger across the whole app */
 }
 
 html,
@@ -39,6 +43,7 @@ body {
 
 body {
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500; /* medium instead of regular, a touch bolder by default */
 }
 
 h1,
@@ -66,13 +71,22 @@ h3,
   color: transparent;
 }
 
-/* Dark aurora backdrop for the login hero panel. */
+/* Dark ocean backdrop for the login hero panel — deep-sea navy with blue/teal/violet currents. */
 .bg-aurora {
   background-color: hsl(var(--ink));
   background-image:
     radial-gradient(60% 50% at 15% 10%, hsl(var(--primary) / 0.55), transparent 60%),
     radial-gradient(55% 45% at 85% 20%, hsl(var(--gradient-mid) / 0.5), transparent 60%),
     radial-gradient(70% 60% at 50% 100%, hsl(var(--accent) / 0.35), transparent 65%);
+}
+
+/* Sunlit-shallow-water wash for the login form's outer panel — a filled ocean-blue
+   gradient instead of a flat white background, echoing the hero panel opposite it. */
+.bg-ocean-wash {
+  background-color: hsl(var(--bg));
+  background-image:
+    linear-gradient(165deg, hsl(var(--primary-soft)) 0%, hsl(0 0% 100%) 45%, hsl(var(--accent-soft)) 100%),
+    radial-gradient(55% 45% at 12% 12%, hsl(var(--gradient-mid) / 0.22), transparent 70%);
 }
 
 /* Subtle grain overlay so gradients don't look flat/banded. */
@@ -101,10 +115,21 @@ h3,
   border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
-/* Faint dot lattice for light backdrops — decorative, fades via mask on use. */
+/* Faint dot lattice for light backdrops — decorative, fades via mask on use.
+   Drifts diagonally by exactly two tiles so the loop is seamless. */
 .bg-dot-grid {
-  background-image: radial-gradient(hsl(var(--primary-deep) / 0.35) 1px, transparent 1px);
+  background-image: radial-gradient(hsl(var(--primary-deep) / 0.6) 1px, transparent 1px);
   background-size: 24px 24px;
+  animation: drift-dots 3s linear infinite;
+}
+
+@keyframes drift-dots {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 48px 48px;
+  }
 }
 
 /* Force every text-like form control to the same box height regardless of type.

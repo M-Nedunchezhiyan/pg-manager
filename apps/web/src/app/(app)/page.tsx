@@ -13,6 +13,7 @@ import { PageLoader } from '@/components/ui/spinner';
 import { toast } from '@/components/ui/toast-store';
 import { resolveAmenity } from '@/lib/amenities';
 import { errorMessage } from '@/lib/api';
+import { fetchMe } from '@/lib/auth';
 import { createPG, listPGs, type CreatePGInput } from '@/lib/pgs';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,7 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const qc = useQueryClient();
   const { data: pgs, isLoading } = useQuery({ queryKey: ['pgs'], queryFn: listPGs });
+  const { data: me } = useQuery({ queryKey: ['me'], queryFn: fetchMe });
 
   const close = () => setModalOpen(false);
   const created = () => {
@@ -113,16 +115,18 @@ export default function HomePage() {
             </Link>
           ))}
 
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="flex h-full min-h-[180px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary-soft/30 text-primary-deep transition hover:border-primary hover:bg-primary-soft"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-gradient text-primary-foreground shadow-card">
-              <Plus className="h-5 w-5" />
-            </span>
-            <span className="font-medium">Add PG</span>
-          </button>
+          {me?.role === 'OWNER' && (
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="flex h-full min-h-[180px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary-soft/30 text-primary-deep transition hover:border-primary hover:bg-primary-soft"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-gradient text-primary-foreground shadow-card">
+                <Plus className="h-5 w-5" />
+              </span>
+              <span className="font-medium">Add PG</span>
+            </button>
+          )}
         </div>
       )}
 

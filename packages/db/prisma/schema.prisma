@@ -119,6 +119,9 @@ model User {
 }
 
 // Manager → PGs they're allowed to access. OWNER bypasses this check.
+// At most one manager per PG (a manager can hold multiple PG assignments,
+// but two managers can never be scoped to the same PG). Enforced at the DB
+// level so it holds even under concurrent requests or an application bug.
 model UserPGScope {
   userId String @map("user_id")
   pgId   String @map("pg_id")
@@ -127,6 +130,7 @@ model UserPGScope {
   pg   PG   @relation(fields: [pgId], references: [id], onDelete: Cascade)
 
   @@id([userId, pgId])
+  @@unique([pgId])
   @@map("user_pg_scopes")
 }
 

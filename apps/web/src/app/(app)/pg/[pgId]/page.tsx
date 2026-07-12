@@ -4,12 +4,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BedDouble,
   Building2,
+  Check,
+  Copy,
   IndianRupee,
+  KeyRound,
   Loader2,
   Pencil,
   ReceiptText,
   Sparkles,
+  Trash2,
   TrendingUp,
+  UserCog,
   Users,
   X,
 } from 'lucide-react';
@@ -21,6 +26,8 @@ import { PageLoader } from '@/components/ui/spinner';
 import { toast } from '@/components/ui/toast-store';
 import { resolveAmenity } from '@/lib/amenities';
 import { api, errorMessage } from '@/lib/api';
+import { fetchMe } from '@/lib/auth';
+import { assignPgManager, getPgManager, removePgManager, type AssignManagerResult } from '@/lib/managers';
 import { updatePG, updatePGSettings } from '@/lib/pgs';
 import { cn, paiseToRupees, rupeesToPaise } from '@/lib/utils';
 
@@ -65,6 +72,7 @@ export default function PGOverviewPage() {
     queryKey: ['dashboard', pgId],
     queryFn: async () => (await api.get<DashboardData>(`/dashboard/pg/${pgId}`)).data,
   });
+  const { data: me } = useQuery({ queryKey: ['me'], queryFn: fetchMe });
 
   if (isLoading || !data) return <PageLoader />;
   const s = data.settings;
@@ -120,6 +128,8 @@ export default function PGOverviewPage() {
         <SettingsCard pgId={pgId} settings={s} />
 
         <AmenitiesCard pgId={pgId} amenities={data.amenities ?? []} />
+
+        {me?.role === 'OWNER' && <ManagerCard pgId={pgId} />}
 
         <Card title="Floors" icon={Building2}>
           {data.floors.length === 0 ? (
@@ -453,6 +463,205 @@ function AmenitiesCard({ pgId, amenities }: { pgId: string; amenities: string[] 
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function ManagerCard({ pgId }: { pgId: string }) {
+  const qc = useQueryClient();
+  const [assigning, setAssigning] = useState(false);
+  const [justAssigned, setJustAssigned] = useState<{ email: string; temporaryPassword: string } | null>(null);
+
+  const { data: manager, isLoading } = useQuery({
+    queryKey: ['pg-manager', pgId],
+    queryFn: () => getPgManager(pgId),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: () => removePgManager(pgId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pg-manager', pgId] });
+      setJustAssigned(null);
+    },
+    onError: (e) => toast({ variant: 'error', title: "Couldn't remove manager", description: errorMessage(e) }),
+  });
+
+  return (
+    <div className="rounded-xl bg-surface p-4 shadow-card">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+          <UserCog className="h-3.5 w-3.5 text-primary-deep" />
+          Manager
+        </h2>
+        {!isLoading && !manager && !assigning && (
+          <button
+            type="button"
+            onClick={() => setAssigning(true)}
+            className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-primary-soft"
+          >
+            <Pencil className="h-3 w-3" /> Assign manager
+          </button>
+        )}
+      </div>
+
+      {justAssigned && (
+        <TempPasswordBanner
+          email={justAssigned.email}
+          password={justAssigned.temporaryPassword}
+          onDismiss={() => setJustAssigned(null)}
+        />
+      )}
+
+      {isLoading ? (
+        <p className="text-sm text-muted">Loading…</p>
+      ) : assigning ? (
+        <AssignManagerForm
+          pgId={pgId}
+          onDone={() => setAssigning(false)}
+          onAssigned={(result) => {
+            if (result.temporaryPassword) {
+              setJustAssigned({ email: result.email, temporaryPassword: result.temporaryPassword });
+            } else {
+              toast({ variant: 'success', title: 'Manager assigned' });
+            }
+            setAssigning(false);
+          }}
+        />
+      ) : manager ? (
+        <div className="space-y-2 text-sm">
+          <Row k="Name" v={manager.name} />
+          <Row k="Email" v={manager.email} />
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              onClick={() => removeMutation.mutate()}
+              disabled={removeMutation.isPending}
+              className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-danger hover:bg-danger/10 disabled:opacity-60"
+            >
+              {removeMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Trash2 className="h-3 w-3" />
+              )}
+              Remove
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted">No manager assigned yet.</p>
+      )}
+    </div>
+  );
+}
+
+function AssignManagerForm({
+  pgId,
+  onDone,
+  onAssigned,
+}: {
+  pgId: string;
+  onDone: () => void;
+  onAssigned: (result: AssignManagerResult) => void;
+}) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+
+  const m = useMutation({
+    mutationFn: () => assignPgManager(pgId, { name, email }),
+    onSuccess: onAssigned,
+    onError: (e) => toast({ variant: 'error', title: "Couldn't assign manager", description: errorMessage(e) }),
+  });
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        m.mutate();
+      }}
+      className="space-y-2 text-sm"
+    >
+      <label className="block">
+        <span className="mb-1 block text-muted">Name</span>
+        <input
+          type="text"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full rounded-md border bg-bg px-2 py-1.5 outline-none focus:border-primary"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-muted">Email</span>
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-md border bg-bg px-2 py-1.5 outline-none focus:border-primary"
+        />
+      </label>
+      <div className="mt-3 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm hover:bg-surface"
+        >
+          <X className="h-3.5 w-3.5" />
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={m.isPending}
+          className="flex items-center gap-1 rounded-md bg-brand-gradient px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
+        >
+          {m.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          Assign
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function TempPasswordBanner({
+  email,
+  password,
+  onDismiss,
+}: {
+  email: string;
+  password: string;
+  onDismiss: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="mb-3 space-y-2 rounded-lg border border-warn/40 bg-warn/10 p-3 text-sm">
+      <p className="flex items-center gap-1.5 font-medium text-warn">
+        <KeyRound className="h-3.5 w-3.5" />
+        Save this password now — it won&apos;t be shown again
+      </p>
+      <p className="text-xs text-muted">{email}</p>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 truncate rounded-md bg-surface px-2 py-1 font-mono text-xs">{password}</code>
+        <button
+          type="button"
+          onClick={copy}
+          className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-surface"
+        >
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <div className="flex justify-end">
+        <button type="button" onClick={onDismiss} className="text-xs text-muted underline hover:text-text">
+          Dismiss
+        </button>
+      </div>
     </div>
   );
 }

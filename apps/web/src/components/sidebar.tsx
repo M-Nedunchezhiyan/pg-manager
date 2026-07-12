@@ -35,9 +35,9 @@ export function Sidebar() {
 
         {base && (
           <>
-            <div className="mb-1 mt-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+            {/* <div className="mb-1 mt-3 px-3 text-[10px] font-bold uppercase tracking-wider text-white/90">
               This PG
-            </div>
+            </div> */}
             {PG_TABS.map((t) => {
               const href = t.slug ? `${base}/${t.slug}` : base;
               const isActive = t.slug ? pathname.startsWith(href) : pathname === href;

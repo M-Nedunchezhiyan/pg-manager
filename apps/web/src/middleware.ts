@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, verifySession } from '@/server/common/jwt';
 
 // Public paths — these don't require an active session.
-const PUBLIC_PATHS = ['/login', '/_next', '/favicon.ico'];
+const PUBLIC_PATHS = ['/login', '/_next', '/favicon.ico', '/icon.svg'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -25,5 +25,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api/cron|api/auth|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api/cron|api/auth|_next/static|_next/image|favicon.ico|icon.svg).*)'],
 };

@@ -93,13 +93,13 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="relative z-10 animate-fade-up text-xs text-white/40 [animation-delay:400ms]">
-          © {new Date().getFullYear()} PG Manager. Crafted for hostel &amp; PG owners.
+        <p className="relative z-10 animate-fade-up text-xs text-white/80 [animation-delay:400ms]">
+          © {new Date().getFullYear()} <span> </span>PG Manager. Crafted for hostel &amp; PG owners.
         </p>
       </div>
 
       {/* Form panel */}
-      <div className="relative flex items-center justify-center overflow-hidden bg-bg p-6 sm:p-10">
+      <div className="relative flex items-center justify-center overflow-hidden bg-ocean-wash p-6 sm:p-10">
         {/* Compact gradient wash for mobile, where the hero panel is hidden */}
         <div
           aria-hidden="true"
@@ -109,7 +109,7 @@ export default function LoginPage() {
         {/* Desktop-only decoration behind the card: faint dot lattice + soft brand blobs */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 hidden bg-dot-grid opacity-60 [mask-image:radial-gradient(ellipse_60%_55%_at_50%_45%,transparent,black_80%)] lg:block"
+          className="absolute inset-0 hidden bg-dot-grid opacity-90 [mask-image:radial-gradient(ellipse_60%_55%_at_50%_45%,transparent,black_80%)] lg:block"
         />
         <div
           aria-hidden="true"

@@ -19,8 +19,8 @@ export function LogoMark({ size = 36, className }: { size?: number; className?: 
     >
       <defs>
         <linearGradient id={gradId} x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="hsl(160 84% 28%)" />
-          <stop offset="55%" stopColor="hsl(226 70% 56%)" />
+          <stop offset="0%" stopColor="hsl(201 96% 32%)" />
+          <stop offset="55%" stopColor="hsl(189 94% 43%)" />
           <stop offset="100%" stopColor="hsl(262 83% 58%)" />
         </linearGradient>
       </defs>

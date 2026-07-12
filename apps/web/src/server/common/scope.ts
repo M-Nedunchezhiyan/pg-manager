@@ -13,3 +13,7 @@ export async function assertPgScope(pgId: string, userId: string, role: UserRole
   });
   if (!scope) throw new HttpError(403, 'No access to this PG');
 }
+
+export function assertOwner(role: UserRole): void {
+  if (role !== UserRole.OWNER) throw new HttpError(403, 'Only the owner can perform this action');
+}
