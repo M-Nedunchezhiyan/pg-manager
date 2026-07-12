@@ -12,6 +12,7 @@ export interface PG {
   pincode: string;
   phone?: string;
   imageUrl?: string;
+  amenities?: string[];
   isActive: boolean;
   settings?: { advanceMonths: number; dueDaysAfterJoin: number; lateFeePerDay: number; noticeDays: number };
   _count?: { residents: number };
@@ -26,6 +27,7 @@ export interface CreatePGInput {
   pincode: string;
   phone?: string;
   imageUrl?: string;
+  amenities?: string[];
 }
 
 export interface PGDetail extends PG {
@@ -52,6 +54,11 @@ export async function getPG(pgId: string): Promise<PGDetail> {
 
 export async function createPG(input: CreatePGInput): Promise<PG> {
   const { data } = await api.post<PG>('/pgs', input);
+  return data;
+}
+
+export async function updatePG(pgId: string, input: Partial<CreatePGInput>): Promise<PG> {
+  const { data } = await api.patch<PG>(`/pgs/${pgId}`, input);
   return data;
 }
 

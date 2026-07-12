@@ -1,11 +1,13 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, Loader2, LogOut, Pencil, X } from 'lucide-react';
+import { ArrowLeft, BedDouble, Briefcase, FileText, Home, Loader2, LogOut, Pencil, UserCircle, Wallet, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
+import { PageLoader } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/toast-store';
 import { errorMessage } from '@/lib/api';
 import {
   cancelResidentNotice,
@@ -38,7 +40,7 @@ export default function ResidentDetailPage() {
   };
 
   if (isLoading || !data) {
-    return <div className="text-muted">Loading…</div>;
+    return <PageLoader />;
   }
 
   const currentAlloc = data.allocations.find((a) => a.toDate === null);
@@ -65,7 +67,8 @@ export default function ResidentDetailPage() {
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-semibold">{data.fullName}</h1>
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">Resident Profile</p>
+            <h1 className="font-display text-2xl font-medium">{data.fullName}</h1>
             <p className="text-sm text-muted">
               <StatusPill status={data.status} /> · Joined{' '}
               {new Date(data.joinedOn).toLocaleDateString('en-IN')} · Due day {data.dueDayOfMonth}
@@ -73,7 +76,7 @@ export default function ResidentDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {data.status !== 'INACTIVE' && (
             <button
               type="button"
@@ -108,20 +111,20 @@ export default function ResidentDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card title="Contact">
+        <Card title="Contact" icon={UserCircle}>
           <Row k="Primary contact" v={data.primaryContactName} />
           <Row k="Email" v={data.email ?? '—'} />
           <Row k="With food" v={data.withFood ? 'Yes' : 'No'} />
         </Card>
-        <Card title="Work / Institution">
+        <Card title="Work / Institution" icon={Briefcase}>
           <Row k="Work" v={data.workOrInstitution} />
           {data.workAddress && <Row k="Address" v={data.workAddress} />}
         </Card>
-        <Card title="Home">
+        <Card title="Home" icon={Home}>
           <Row k="Address" v={data.homeAddress} />
           <Row k="City / State" v={`${data.homeCity}, ${data.homeState}`} />
         </Card>
-        <Card title="ID proof">
+        <Card title="ID proof" icon={FileText}>
           <Row k="Type" v={data.idProofType ?? '—'} />
           {data.idProofUrl ? (
             <a
@@ -139,7 +142,7 @@ export default function ResidentDetailPage() {
       </div>
 
       {currentAlloc && (
-        <Card title="Current allocation">
+        <Card title="Current allocation" icon={BedDouble}>
           <Row
             k="Bed"
             v={`Floor ${currentAlloc.bed.room.floor.number} · Room ${currentAlloc.bed.room.number} · Bed ${currentAlloc.bed.label}`}
@@ -149,67 +152,72 @@ export default function ResidentDetailPage() {
         </Card>
       )}
 
-      <Card title={`Allocation history (${data.allocations.length})`}>
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase text-muted">
-            <tr>
-              <th className="py-2">Bed</th>
-              <th className="py-2">From</th>
-              <th className="py-2">To</th>
-              <th className="py-2 text-right">Rent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.allocations.map((a) => (
-              <tr key={a.id} className="border-t">
-                <td className="py-2">
-                  F{a.bed.room.floor.number} · {a.bed.room.number} / {a.bed.label}
-                </td>
-                <td className="py-2 text-muted">{new Date(a.fromDate).toLocaleDateString('en-IN')}</td>
-                <td className="py-2 text-muted">
-                  {a.toDate ? new Date(a.toDate).toLocaleDateString('en-IN') : '— current —'}
-                </td>
-                <td className="py-2 text-right">{paiseToRupees(a.rentSnapshot)}</td>
+      <Card title={`Allocation history (${data.allocations.length})`} icon={BedDouble}>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-sm">
+            <thead className="text-left text-xs uppercase text-muted">
+              <tr>
+                <th className="py-2">Bed</th>
+                <th className="py-2">From</th>
+                <th className="py-2">To</th>
+                <th className="py-2 text-right">Rent</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.allocations.map((a) => (
+                <tr key={a.id} className="border-t">
+                  <td className="py-2">
+                    F{a.bed.room.floor.number} · {a.bed.room.number} / {a.bed.label}
+                  </td>
+                  <td className="py-2 text-muted">{new Date(a.fromDate).toLocaleDateString('en-IN')}</td>
+                  <td className="py-2 text-muted">
+                    {a.toDate ? new Date(a.toDate).toLocaleDateString('en-IN') : '— current —'}
+                  </td>
+                  <td className="py-2 text-right">{paiseToRupees(a.rentSnapshot)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       <Card
         title={`Payments (${data.payments.length}) · Advance held: ${paiseToRupees(totalAdvance - totalRefunded)}`}
+        icon={Wallet}
       >
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase text-muted">
-            <tr>
-              <th className="py-2">Date</th>
-              <th className="py-2">Kind</th>
-              <th className="py-2">For</th>
-              <th className="py-2 text-right">Amount</th>
-              <th className="py-2 text-right">Late fee</th>
-              <th className="py-2">Method</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.payments.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="py-2 text-muted">{new Date(p.paidOn).toLocaleDateString('en-IN')}</td>
-                <td className="py-2 font-medium">{p.kind}</td>
-                <td className="py-2 text-muted">
-                  {p.forMonth && p.forYear
-                    ? new Date(p.forYear, p.forMonth - 1).toLocaleString('en-IN', {
-                        month: 'short',
-                        year: 'numeric',
-                      })
-                    : '—'}
-                </td>
-                <td className="py-2 text-right">{paiseToRupees(p.amount)}</td>
-                <td className="py-2 text-right">{p.lateFee > 0 ? paiseToRupees(p.lateFee) : '—'}</td>
-                <td className="py-2 text-muted">{p.method}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className="text-left text-xs uppercase text-muted">
+              <tr>
+                <th className="py-2">Date</th>
+                <th className="py-2">Kind</th>
+                <th className="py-2">For</th>
+                <th className="py-2 text-right">Amount</th>
+                <th className="py-2 text-right">Late fee</th>
+                <th className="py-2">Method</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.payments.map((p) => (
+                <tr key={p.id} className="border-t">
+                  <td className="py-2 text-muted">{new Date(p.paidOn).toLocaleDateString('en-IN')}</td>
+                  <td className="py-2 font-medium">{p.kind}</td>
+                  <td className="py-2 text-muted">
+                    {p.forMonth && p.forYear
+                      ? new Date(p.forYear, p.forMonth - 1).toLocaleString('en-IN', {
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : '—'}
+                  </td>
+                  <td className="py-2 text-right">{paiseToRupees(p.amount)}</td>
+                  <td className="py-2 text-right">{p.lateFee > 0 ? paiseToRupees(p.lateFee) : '—'}</td>
+                  <td className="py-2 text-muted">{p.method}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       {editOpen && (
@@ -247,28 +255,22 @@ export default function ResidentDetailPage() {
 }
 
 function CancelNoticeButton({ residentId, onDone }: { residentId: string; onDone: () => void }) {
-  const [err, setErr] = useState<string | null>(null);
   const m = useMutation({
     mutationFn: () => cancelResidentNotice(residentId),
-    onSuccess: () => {
-      setErr(null);
-      onDone();
-    },
-    onError: (e) => setErr(errorMessage(e)),
+    onSuccess: onDone,
+    onError: (e) =>
+      toast({ variant: 'error', title: "Couldn't cancel notice", description: errorMessage(e) }),
   });
   return (
-    <div className="flex flex-col items-end gap-1">
-      <button
-        type="button"
-        disabled={m.isPending}
-        onClick={() => m.mutate()}
-        className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-primary-soft disabled:opacity-60"
-      >
-        {m.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-        Cancel notice
-      </button>
-      {err && <span className="text-xs text-danger">{err}</span>}
-    </div>
+    <button
+      type="button"
+      disabled={m.isPending}
+      onClick={() => m.mutate()}
+      className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-primary-soft disabled:opacity-60"
+    >
+      {m.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+      Cancel notice
+    </button>
   );
 }
 
@@ -294,7 +296,6 @@ function EditResidentModal({
   });
   const [phone, setPhone] = useState('');
   const [primaryContactPhone, setPrimaryContactPhone] = useState('');
-  const [err, setErr] = useState<string | null>(null);
 
   const set = <K extends keyof UpdateResidentInput>(k: K, v: UpdateResidentInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -312,7 +313,8 @@ function EditResidentModal({
       return updateResident(resident.id, payload);
     },
     onSuccess: onSaved,
-    onError: (e) => setErr(errorMessage(e)),
+    onError: (e) =>
+      toast({ variant: 'error', title: "Couldn't save changes", description: errorMessage(e) }),
   });
 
   return (
@@ -369,7 +371,6 @@ function EditResidentModal({
           </Field>
         </div>
       </div>
-      {err && <Err msg={err} />}
       <ModalActions onCancel={onClose} onSubmit={() => m.mutate()} busy={m.isPending} />
     </Modal>
   );
@@ -386,7 +387,6 @@ function NoticeModal({
 }) {
   const [date, setDate] = useState('');
   const [note, setNote] = useState('');
-  const [err, setErr] = useState<string | null>(null);
 
   const m = useMutation({
     mutationFn: () =>
@@ -395,7 +395,8 @@ function NoticeModal({
         ...(note && { note }),
       }),
     onSuccess: onSaved,
-    onError: (e) => setErr(errorMessage(e)),
+    onError: (e) =>
+      toast({ variant: 'error', title: "Couldn't give notice", description: errorMessage(e) }),
   });
 
   return (
@@ -410,7 +411,6 @@ function NoticeModal({
       <Field label="Note">
         <input value={note} onChange={(e) => setNote(e.target.value)} className={inp} />
       </Field>
-      {err && <Err msg={err} />}
       <ModalActions onCancel={onClose} onSubmit={() => m.mutate()} busy={m.isPending} />
     </Modal>
   );
@@ -432,7 +432,6 @@ function RelieveModal({
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [damages, setDamages] = useState('0');
   const [notes, setNotes] = useState('');
-  const [err, setErr] = useState<string | null>(null);
 
   const refundable = Math.max(0, held - rupeesToPaise(Number(damages || '0')));
 
@@ -444,7 +443,8 @@ function RelieveModal({
         ...(notes && { notes }),
       }),
     onSuccess: onSaved,
-    onError: (e) => setErr(errorMessage(e)),
+    onError: (e) =>
+      toast({ variant: 'error', title: "Couldn't relieve resident", description: errorMessage(e) }),
   });
 
   return (
@@ -468,7 +468,6 @@ function RelieveModal({
           <span>Refundable</span><span className="text-primary-deep">{paiseToRupees(refundable)}</span>
         </div>
       </div>
-      {err && <Err msg={err} />}
       <ModalActions onCancel={onClose} onSubmit={() => m.mutate()} busy={m.isPending} submitLabel="Relieve" danger />
     </Modal>
   );
@@ -478,10 +477,21 @@ function RelieveModal({
 
 const inp = 'w-full rounded-md border bg-bg px-3 py-2 text-sm outline-none focus:border-primary';
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({
+  title,
+  children,
+  icon: Icon,
+}: {
+  title: string;
+  children: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+}) {
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">{title}</h2>
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+        {Icon && <Icon className="h-3.5 w-3.5 text-primary-deep" />}
+        {title}
+      </h2>
       {children}
     </div>
   );
@@ -489,9 +499,9 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div className="flex justify-between text-sm">
+    <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-sm">
       <dt className="text-muted">{k}</dt>
-      <dd className="font-medium">{v}</dd>
+      <dd className="break-words text-right font-medium">{v}</dd>
     </div>
   );
 }
@@ -518,8 +528,8 @@ function Modal({
   size?: 'sm' | 'lg';
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/30 p-4">
-      <div className={`w-full ${size === 'lg' ? 'max-w-2xl' : 'max-w-md'} rounded-lg border bg-bg p-5 shadow-card`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+      <div className={`w-full ${size === 'lg' ? 'max-w-2xl' : 'max-w-md'} rounded-2xl bg-bg p-5 shadow-elevated`}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold">{title}</h3>
           <button onClick={onClose} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-surface">
@@ -538,14 +548,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1 block text-xs text-muted">{label}</span>
       {children}
     </label>
-  );
-}
-
-function Err({ msg }: { msg: string }) {
-  return (
-    <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
-      {msg}
-    </div>
   );
 }
 
@@ -570,8 +572,8 @@ function ModalActions({
       <button
         onClick={onSubmit}
         disabled={busy}
-        className={`flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60 ${
-          danger ? 'bg-danger' : 'bg-primary hover:bg-primary-deep'
+        className={`flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-primary-foreground shadow-card transition disabled:opacity-60 ${
+          danger ? 'bg-danger hover:opacity-90' : 'bg-brand-gradient hover:brightness-110'
         }`}
       >
         {busy && <Loader2 className="h-3 w-3 animate-spin" />}

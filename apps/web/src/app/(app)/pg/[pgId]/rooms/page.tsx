@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Check, DoorOpen, IndianRupee, Layers, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
@@ -44,9 +44,12 @@ export default function RoomsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Rooms & Beds Setup</h1>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">Rooms &amp; Beds</p>
+        <h1 className="font-display text-2xl font-medium">Rooms & Beds Setup</h1>
+      </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <FloorsCard pgId={pgId} floors={floorsQ.data ?? []} onChanged={invalidate} />
         <SharingTypesCard pgId={pgId} sharingTypes={sharingQ.data ?? []} onChanged={invalidate} />
       </div>
@@ -92,8 +95,11 @@ function FloorsCard({
   });
 
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Floors</h2>
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+        <Layers className="h-3.5 w-3.5 text-primary-deep" />
+        Floors
+      </h2>
       {floors.length > 0 && (
         <ul className="mb-4 space-y-1 text-sm">
           {floors.map((f) => (
@@ -125,7 +131,7 @@ function FloorsCard({
         <button
           type="submit"
           disabled={!number || m.isPending}
-          className="flex h-9 items-center gap-1 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+          className="flex h-9 items-center gap-1 rounded-md bg-brand-gradient px-3 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
         >
           <Plus className="h-4 w-4" /> Add
         </button>
@@ -249,8 +255,11 @@ function SharingTypesCard({
   });
 
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Sharing types</h2>
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+        <IndianRupee className="h-3.5 w-3.5 text-primary-deep" />
+        Sharing types
+      </h2>
       {sharingTypes.length > 0 && (
         <ul className="mb-4 space-y-1 text-sm">
           {sharingTypes.map((st) => (
@@ -271,7 +280,7 @@ function SharingTypesCard({
         <button
           type="submit"
           disabled={!name || !capacity || !rent || m.isPending}
-          className="flex h-9 items-center gap-1 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+          className="flex h-9 items-center gap-1 rounded-md bg-brand-gradient px-3 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
         >
           <Plus className="h-4 w-4" /> Add
         </button>
@@ -378,8 +387,11 @@ function RoomsCard({
   });
 
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Rooms</h2>
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+        <DoorOpen className="h-3.5 w-3.5 text-primary-deep" />
+        Rooms
+      </h2>
       {rooms.length > 0 && (
         <div className="mb-4 grid grid-cols-1 gap-1 text-sm md:grid-cols-2">
           {rooms.map((r) => (
@@ -428,7 +440,7 @@ function RoomsCard({
         <button
           type="submit"
           disabled={!floorId || !sharingTypeId || !number || m.isPending}
-          className="flex h-9 items-center gap-1 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+          className="flex h-9 items-center gap-1 rounded-md bg-brand-gradient px-3 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
         >
           <Plus className="h-4 w-4" /> Add room
         </button>

@@ -1,13 +1,28 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Pencil, X } from 'lucide-react';
+import {
+  BedDouble,
+  Building2,
+  IndianRupee,
+  Loader2,
+  Pencil,
+  ReceiptText,
+  Sparkles,
+  TrendingUp,
+  Users,
+  X,
+} from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
+import { AmenityPicker } from '@/components/amenity-picker';
+import { PageLoader } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/toast-store';
+import { resolveAmenity } from '@/lib/amenities';
 import { api, errorMessage } from '@/lib/api';
-import { updatePGSettings } from '@/lib/pgs';
-import { paiseToRupees, rupeesToPaise } from '@/lib/utils';
+import { updatePG, updatePGSettings } from '@/lib/pgs';
+import { cn, paiseToRupees, rupeesToPaise } from '@/lib/utils';
 
 interface PGDetail {
   id: string;
@@ -17,6 +32,7 @@ interface PGDetail {
   city: string;
   state: string;
   pincode: string;
+  amenities?: string[];
   settings?: {
     advanceMonths: number;
     dueDaysAfterJoin: number;
@@ -50,14 +66,15 @@ export default function PGOverviewPage() {
     queryFn: async () => (await api.get<DashboardData>(`/dashboard/pg/${pgId}`)).data,
   });
 
-  if (isLoading || !data) return <div className="text-muted">Loading…</div>;
+  if (isLoading || !data) return <PageLoader />;
   const s = data.settings;
   const d = dash.data;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">{data.name}</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">PG Overview</p>
+        <h1 className="font-display text-2xl font-medium">{data.name}</h1>
         <p className="text-sm text-muted">
           {data.address}, {data.city} {data.pincode}
         </p>
@@ -65,20 +82,28 @@ export default function PGOverviewPage() {
 
       {d && (
         <>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-            <Stat label="Active residents" value={d.counts.activeResidents} />
-            <Stat label="Occupancy" value={`${d.counts.occupancyPercent}%`} sub={`${d.counts.occupied}/${d.counts.totalBeds}`} />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <Stat icon={Users} label="Active residents" value={d.counts.activeResidents} />
             <Stat
+              icon={BedDouble}
+              label="Occupancy"
+              value={`${d.counts.occupancyPercent}%`}
+              sub={`${d.counts.occupied}/${d.counts.totalBeds}`}
+            />
+            <Stat
+              icon={TrendingUp}
               label="This month revenue"
               value={paiseToRupees(d.thisMonth?.revenue ?? 0)}
               tone="success"
             />
             <Stat
+              icon={ReceiptText}
               label="This month expenses"
               value={paiseToRupees(d.thisMonth?.expenses ?? 0)}
               tone="warn"
             />
             <Stat
+              icon={IndianRupee}
               label="Net"
               value={paiseToRupees(d.thisMonth?.net ?? 0)}
               tone={(d.thisMonth?.net ?? 0) >= 0 ? 'success' : 'danger'}
@@ -94,8 +119,9 @@ export default function PGOverviewPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <SettingsCard pgId={pgId} settings={s} />
 
+        <AmenitiesCard pgId={pgId} amenities={data.amenities ?? []} />
 
-        <Card title="Floors">
+        <Card title="Floors" icon={Building2}>
           {data.floors.length === 0 ? (
             <p className="text-sm text-muted">No floors. Add them in the Rooms tab.</p>
           ) : (
@@ -110,7 +136,7 @@ export default function PGOverviewPage() {
           )}
         </Card>
 
-        <Card title="Sharing types & rent">
+        <Card title="Sharing types & rent" icon={IndianRupee}>
           {data.sharingTypes.length === 0 ? (
             <p className="text-sm text-muted">No sharing types defined yet.</p>
           ) : (
@@ -131,21 +157,34 @@ export default function PGOverviewPage() {
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">{title}</h2>
+    <div className="rounded-xl bg-surface p-4 shadow-card">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+        {Icon && <Icon className="h-3.5 w-3.5 text-primary-deep" />}
+        {title}
+      </h2>
       {children}
     </div>
   );
 }
 
 function Stat({
+  icon: Icon,
   label,
   value,
   sub,
   tone,
 }: {
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string | number;
   sub?: string;
@@ -159,10 +198,21 @@ function Stat({
         : tone === 'danger'
           ? 'text-danger'
           : 'text-text';
+  const chip =
+    tone === 'success'
+      ? 'bg-primary-soft text-primary-deep'
+      : tone === 'warn'
+        ? 'bg-warn/15 text-warn'
+        : tone === 'danger'
+          ? 'bg-danger/15 text-danger'
+          : 'bg-primary-soft text-primary-deep';
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <div className={cn('mb-2 flex h-8 w-8 items-center justify-center rounded-full', chip)}>
+        <Icon className="h-4 w-4" />
+      </div>
       <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
-      <div className={`mt-1 text-xl font-semibold ${color}`}>{value}</div>
+      <div className={`mt-0.5 text-xl font-semibold ${color}`}>{value}</div>
       {sub && <div className="text-xs text-muted">{sub}</div>}
     </div>
   );
@@ -185,21 +235,29 @@ function PLChart({ months }: { months: DashboardData['months'] }) {
                 Net {paiseToRupees(m.net)}
               </span>
             </div>
-            <div className="flex h-3 overflow-hidden rounded bg-bg ring-1 ring-border">
-              <div className="bg-primary" style={{ width: `${revPct}%` }} title={`Revenue ${paiseToRupees(m.revenue)}`} />
+            <div className="flex h-3 overflow-hidden rounded-full bg-bg ring-1 ring-border">
+              <div
+                className="rounded-full bg-brand-gradient transition-all"
+                style={{ width: `${revPct}%` }}
+                title={`Revenue ${paiseToRupees(m.revenue)}`}
+              />
             </div>
-            <div className="flex h-3 overflow-hidden rounded bg-bg ring-1 ring-border">
-              <div className="bg-warn" style={{ width: `${expPct}%` }} title={`Expenses ${paiseToRupees(m.expenses)}`} />
+            <div className="flex h-3 overflow-hidden rounded-full bg-bg ring-1 ring-border">
+              <div
+                className="rounded-full bg-warn/70 transition-all"
+                style={{ width: `${expPct}%` }}
+                title={`Expenses ${paiseToRupees(m.expenses)}`}
+              />
             </div>
           </div>
         );
       })}
       <div className="mt-2 flex items-center gap-4 text-xs text-muted">
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded bg-primary" /> Revenue
+          <span className="h-2 w-2 rounded-full bg-brand-gradient" /> Revenue
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded bg-warn" /> Expenses
+          <span className="h-2 w-2 rounded-full bg-warn/70" /> Expenses
         </span>
       </div>
     </div>
@@ -224,8 +282,8 @@ function SettingsCard({
 }) {
   const [editing, setEditing] = useState(false);
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="rounded-lg bg-surface p-4 shadow-card">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Settings</h2>
         {settings && !editing && (
           <button
@@ -268,7 +326,6 @@ function SettingsForm({
   const [dueDaysAfterJoin, setDueDaysAfterJoin] = useState(String(current.dueDaysAfterJoin));
   const [lateFeeRupees, setLateFeeRupees] = useState(String(current.lateFeePerDay / 100));
   const [noticeDays, setNoticeDays] = useState(String(current.noticeDays));
-  const [err, setErr] = useState<string | null>(null);
 
   const m = useMutation({
     mutationFn: () =>
@@ -282,7 +339,7 @@ function SettingsForm({
       qc.invalidateQueries({ queryKey: ['pg', pgId] });
       onDone();
     },
-    onError: (e) => setErr(errorMessage(e)),
+    onError: (e) => toast({ variant: 'error', title: "Couldn't save PG settings", description: errorMessage(e) }),
   });
 
   return (
@@ -298,12 +355,6 @@ function SettingsForm({
       <NumField label="Late fee per day (₹)" value={lateFeeRupees} onChange={setLateFeeRupees} min={0} />
       <NumField label="Notice period (days)" value={noticeDays} onChange={setNoticeDays} min={0} max={120} />
 
-      {err && (
-        <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
-          {err}
-        </div>
-      )}
-
       <div className="mt-3 flex justify-end gap-2">
         <button
           type="button"
@@ -316,13 +367,93 @@ function SettingsForm({
         <button
           type="submit"
           disabled={m.isPending}
-          className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+          className="flex items-center gap-1 rounded-md bg-brand-gradient px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
         >
           {m.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Save
         </button>
       </div>
     </form>
+  );
+}
+
+function AmenitiesCard({ pgId, amenities }: { pgId: string; amenities: string[] }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string[]>(amenities);
+
+  const m = useMutation({
+    mutationFn: (next: string[]) => updatePG(pgId, { amenities: next }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pg', pgId] });
+      setEditing(false);
+    },
+    onError: (e) => toast({ variant: 'error', title: "Couldn't save amenities", description: errorMessage(e) }),
+  });
+
+  return (
+    <div className="rounded-xl bg-surface p-4 shadow-card">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+          <Sparkles className="h-3.5 w-3.5 text-primary-deep" />
+          Amenities &amp; services
+        </h2>
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(amenities);
+              setEditing(true);
+            }}
+            className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-primary-soft"
+          >
+            <Pencil className="h-3 w-3" /> Edit
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="space-y-3">
+          <AmenityPicker selected={draft} onChange={setDraft} />
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm hover:bg-surface"
+            >
+              <X className="h-3.5 w-3.5" />
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => m.mutate(draft)}
+              disabled={m.isPending}
+              className="flex items-center gap-1 rounded-md bg-brand-gradient px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
+            >
+              {m.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save
+            </button>
+          </div>
+        </div>
+      ) : amenities.length === 0 ? (
+        <p className="text-sm text-muted">No amenities added yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {amenities.map((key) => {
+            const { label, icon: Icon } = resolveAmenity(key);
+            return (
+              <span
+                key={key}
+                className="flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary-deep"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

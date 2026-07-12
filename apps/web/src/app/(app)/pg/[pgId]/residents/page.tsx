@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { PageLoader } from '@/components/ui/spinner';
 import { listResidents } from '@/lib/residents';
 
 export default function ResidentsPage() {
@@ -37,11 +38,14 @@ export default function ResidentsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Residents</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">Directory</p>
+          <h1 className="font-display text-2xl font-medium">Residents</h1>
+        </div>
         <Link
           href={`/pg/${pgId}/residents/onboard` as never}
-          className="flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-deep"
+          className="flex items-center gap-1 rounded-md bg-brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110"
         >
           <Plus className="h-4 w-4" /> Onboard
         </Link>
@@ -59,14 +63,15 @@ export default function ResidentsPage() {
       </div>
 
       {isLoading ? (
-        <div className="py-10 text-center text-muted">Loading…</div>
+        <PageLoader className="min-h-[16rem]" />
       ) : (data ?? []).length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-surface p-10 text-center text-muted">
+        <div className="rounded-xl border-2 border-dashed border-primary/25 bg-primary-soft/20 p-10 text-center text-muted">
           No residents yet.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-surface">
-          <table className="w-full text-sm">
+        <div className="overflow-hidden rounded-xl bg-surface shadow-card">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-primary-soft/40 text-left text-xs uppercase text-muted">
               <tr>
                 <th className="px-4 py-2 font-medium">Name</th>
@@ -116,6 +121,7 @@ export default function ResidentsPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

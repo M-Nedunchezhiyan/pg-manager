@@ -1,10 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { LogOut, ShieldCheck } from 'lucide-react';
+import { LogOut, ShieldCheck, UserCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { PageLoader } from '@/components/ui/spinner';
 import { fetchMe, logout } from '@/lib/auth';
+import { beginRouteLoading } from '@/lib/loading-store';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -12,13 +14,16 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">Settings</p>
+        <h1 className="font-display text-2xl font-medium">Settings</h1>
+      </div>
 
       {isLoading || !me ? (
-        <div className="text-muted">Loading…</div>
+        <PageLoader className="min-h-[16rem]" />
       ) : (
         <>
-          <Card title="Account">
+          <Card title="Account" icon={UserCircle}>
             <Row k="Name" v={me.name} />
             <Row k="Email" v={me.email} />
             <Row k="Role" v={me.role} />
@@ -28,6 +33,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={async () => {
                   await logout();
+                  beginRouteLoading();
                   router.replace('/login');
                 }}
                 className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-surface"
@@ -37,7 +43,7 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          <Card title="Security">
+          <Card title="Security" icon={ShieldCheck}>
             <div className="flex items-start gap-3 text-sm">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary-deep" />
               <div>
@@ -58,10 +64,21 @@ export default function SettingsPage() {
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({
+  title,
+  children,
+  icon: Icon,
+}: {
+  title: string;
+  children: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+}) {
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">{title}</h2>
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+        {Icon && <Icon className="h-3.5 w-3.5 text-primary-deep" />}
+        {title}
+      </h2>
       {children}
     </div>
   );
@@ -69,9 +86,9 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div className="flex justify-between text-sm">
+    <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-sm">
       <dt className="text-muted">{k}</dt>
-      <dd className="font-medium">{v}</dd>
+      <dd className="break-all text-right font-medium">{v}</dd>
     </div>
   );
 }

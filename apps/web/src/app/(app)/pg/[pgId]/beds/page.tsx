@@ -1,24 +1,27 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { BedDouble } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
 
+import { PageLoader } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/toast-store';
 import { errorMessage } from '@/lib/api';
 import { getBedMap, updateBed, type BedStatus } from '@/lib/rooms';
 import { cn, paiseToRupees } from '@/lib/utils';
 
-const STATUS_STYLES: Record<BedStatus, { bg: string; ring: string; label: string }> = {
-  VACANT: { bg: 'bg-primary-soft', ring: 'ring-primary/30', label: 'Vacant' },
-  OCCUPIED: { bg: 'bg-danger/15', ring: 'ring-danger/40', label: 'Occupied' },
-  NOTICE_PERIOD: { bg: 'bg-warn/20', ring: 'ring-warn/40', label: 'Notice' },
-  BLOCKED: { bg: 'bg-muted/20', ring: 'ring-muted/30', label: 'Blocked' },
+// Each status gets a clearly distinct, high-contrast treatment instead of similar pastel
+// tints — occupied is a "good/filled" state (solid brand green), not a warning color.
+const STATUS_STYLES: Record<BedStatus, { bg: string; ring: string; text: string; label: string }> = {
+  VACANT: { bg: 'bg-surface', ring: 'ring-border', text: 'text-muted', label: 'Vacant' },
+  OCCUPIED: { bg: 'bg-primary', ring: 'ring-primary-deep/40', text: 'text-primary-foreground', label: 'Occupied' },
+  NOTICE_PERIOD: { bg: 'bg-warn', ring: 'ring-warn/40', text: 'text-white', label: 'Notice' },
+  BLOCKED: { bg: 'bg-ink', ring: 'ring-ink/40', text: 'text-white', label: 'Blocked' },
 };
 
 export default function BedMapPage() {
   const { pgId } = useParams<{ pgId: string }>();
   const qc = useQueryClient();
-  const [err, setErr] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['bed-map', pgId],
     queryFn: () => getBedMap(pgId),
@@ -27,14 +30,13 @@ export default function BedMapPage() {
   const toggle = useMutation({
     mutationFn: ({ id, status }: { id: string; status: BedStatus }) => updateBed(id, { status }),
     onSuccess: () => {
-      setErr(null);
       qc.invalidateQueries({ queryKey: ['bed-map', pgId] });
       qc.invalidateQueries({ queryKey: ['dashboard', pgId] });
     },
-    onError: (e) => setErr(errorMessage(e)),
+    onError: (e) => toast({ variant: 'error', title: "Couldn't update bed", description: errorMessage(e) }),
   });
 
-  if (isLoading || !data) return <div className="text-muted">Loading…</div>;
+  if (isLoading || !data) return <PageLoader />;
 
   const totals = data.reduce(
     (acc, f) => {
@@ -54,7 +56,8 @@ export default function BedMapPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Bed Map</h1>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">Occupancy</p>
+          <h1 className="font-display text-2xl font-medium">Bed Map</h1>
           <p className="text-sm text-muted">
             {totals.occupied} occupied · {totals.vacant} vacant · {totals.total} total
           </p>
@@ -63,20 +66,14 @@ export default function BedMapPage() {
       </div>
 
       {data.length === 0 && (
-        <div className="rounded-lg border border-dashed bg-surface p-8 text-center text-muted">
+        <div className="rounded-xl border-2 border-dashed border-primary/25 bg-primary-soft/20 p-8 text-center text-muted">
           No floors yet. Set them up in the Rooms tab.
-        </div>
-      )}
-
-      {err && (
-        <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {err}
         </div>
       )}
 
       <div className="space-y-6">
         {data.map((floor) => (
-          <div key={floor.id} className="rounded-lg border bg-surface p-4 shadow-card">
+          <div key={floor.id} className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold">
@@ -91,7 +88,7 @@ export default function BedMapPage() {
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {floor.rooms.map((room) => (
-                  <div key={room.id} className="rounded-md border bg-bg p-3">
+                  <div key={room.id} className="rounded-md bg-well p-3">
                     <div className="mb-2 flex items-center justify-between">
                       <div>
                         <div className="font-medium">Room {room.number}</div>
@@ -120,18 +117,17 @@ export default function BedMapPage() {
                             disabled={!toggleable || toggle.isPending}
                             onClick={() => toggleable && toggle.mutate({ id: bed.id, status: next })}
                             className={cn(
-                              'flex h-12 w-12 flex-col items-center justify-center rounded-md ring-1 transition',
+                              'flex h-12 w-12 flex-col items-center justify-center rounded-lg ring-1 transition',
                               s.bg,
                               s.ring,
-                              toggleable
-                                ? 'cursor-pointer hover:ring-2 hover:ring-primary-deep'
-                                : 'cursor-default',
+                              s.text,
+                              toggleable ? 'cursor-pointer hover:ring-2 hover:ring-primary-deep' : 'cursor-default',
                               toggle.isPending && 'opacity-60',
                             )}
                           >
                             <span className="text-sm font-semibold">{bed.label}</span>
                             {resident && (
-                              <span className="text-[10px] text-text/70">
+                              <span className="text-[10px] opacity-80">
                                 {resident.fullName.split(' ')[0]?.slice(0, 6)}
                               </span>
                             )}
@@ -153,6 +149,7 @@ export default function BedMapPage() {
 function Legend() {
   return (
     <div className="flex items-center gap-3 text-xs text-muted">
+      <BedDouble className="h-3.5 w-3.5 text-primary-deep" />
       {(Object.keys(STATUS_STYLES) as BedStatus[]).map((s) => (
         <div key={s} className="flex items-center gap-1">
           <span className={cn('inline-block h-3 w-3 rounded ring-1', STATUS_STYLES[s].bg, STATUS_STYLES[s].ring)} />

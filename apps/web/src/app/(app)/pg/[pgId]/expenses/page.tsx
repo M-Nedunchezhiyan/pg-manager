@@ -1,10 +1,12 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, ReceiptText, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
+import { PageLoader } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/toast-store';
 import { errorMessage } from '@/lib/api';
 import {
   createExpense,
@@ -48,9 +50,12 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Expenses</h1>
-        <div className="flex items-end gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">Expenses</p>
+          <h1 className="font-display text-2xl font-medium">Expenses</h1>
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
           <label className="text-xs text-muted">
             From
             <input
@@ -74,19 +79,23 @@ export default function ExpensesPage() {
 
       <NewExpense pgId={pgId} onSaved={refresh} />
 
-      <div className="rounded-lg border bg-surface p-4 shadow-card">
+      <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-semibold uppercase tracking-wide text-muted">In range</span>
+          <span className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+            <ReceiptText className="h-3.5 w-3.5 text-primary-deep" />
+            In range
+          </span>
           <span className="text-sm">
             Total: <span className="font-semibold">{paiseToRupees(total)}</span>
           </span>
         </div>
         {q.isLoading ? (
-          <div className="py-6 text-center text-muted">Loading…</div>
+          <PageLoader className="min-h-[10rem] py-4" />
         ) : (q.data ?? []).length === 0 ? (
           <p className="text-sm text-muted">No expenses recorded for this range.</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="text-left text-xs uppercase text-muted">
               <tr>
                 <th className="py-2">Date</th>
@@ -120,6 +129,7 @@ export default function ExpensesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
@@ -131,7 +141,6 @@ function NewExpense({ pgId, onSaved }: { pgId: string; onSaved: () => void }) {
   const [amount, setAmount] = useState('');
   const [spentOn, setSpentOn] = useState(new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState('');
-  const [err, setErr] = useState<string | null>(null);
 
   const m = useMutation({
     mutationFn: () =>
@@ -145,10 +154,10 @@ function NewExpense({ pgId, onSaved }: { pgId: string; onSaved: () => void }) {
     onSuccess: () => {
       setAmount('');
       setNote('');
-      setErr(null);
       onSaved();
     },
-    onError: (e) => setErr(errorMessage(e)),
+    onError: (e) =>
+      toast({ variant: 'error', title: "Couldn't add expense", description: errorMessage(e) }),
   });
 
   return (
@@ -157,7 +166,7 @@ function NewExpense({ pgId, onSaved }: { pgId: string; onSaved: () => void }) {
         e.preventDefault();
         if (Number(amount) > 0) m.mutate();
       }}
-      className="flex flex-wrap items-end gap-2 rounded-lg border bg-surface p-3"
+      className="flex flex-wrap items-end gap-2 rounded-lg bg-surface p-3"
     >
       <label className="block">
         <span className="mb-1 block text-xs text-muted">Category</span>
@@ -169,13 +178,24 @@ function NewExpense({ pgId, onSaved }: { pgId: string; onSaved: () => void }) {
           ))}
         </select>
       </label>
-      <label className="block w-32">
+      <label className="block w-28">
         <span className="mb-1 block text-xs text-muted">Amount (₹)</span>
-        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={inp} />
+        <input
+          type="number"
+          placeholder="0.00"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className={inp}
+        />
       </label>
-      <label className="block">
+      <label className="block w-40">
         <span className="mb-1 block text-xs text-muted">Date</span>
-        <input type="date" value={spentOn} onChange={(e) => setSpentOn(e.target.value)} className={inp} />
+        <input
+          type="date"
+          value={spentOn}
+          onChange={(e) => setSpentOn(e.target.value)}
+          className={`${inp} w-full`}
+        />
       </label>
       <label className="block flex-1 min-w-[160px]">
         <span className="mb-1 block text-xs text-muted">Note</span>
@@ -184,12 +204,11 @@ function NewExpense({ pgId, onSaved }: { pgId: string; onSaved: () => void }) {
       <button
         type="submit"
         disabled={!amount || m.isPending}
-        className="flex h-9 items-center gap-1 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+        className="flex h-10 items-center gap-1 rounded-md bg-brand-gradient px-3 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
       >
         {m.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
         Add
       </button>
-      {err && <p className="basis-full text-xs text-danger">{err}</p>}
     </form>
   );
 }

@@ -5,6 +5,8 @@ import { Loader2, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
+import { PageLoader } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/toast-store';
 import { errorMessage } from '@/lib/api';
 import {
   getLedger,
@@ -33,17 +35,19 @@ export default function RentPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Rent Ledger</h1>
+      <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">Rent</p>
+      <h1 className="font-display text-2xl font-medium">Rent Ledger</h1>
 
       {isLoading ? (
-        <div className="py-10 text-center text-muted">Loading…</div>
+        <PageLoader className="min-h-[16rem]" />
       ) : (data ?? []).length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-surface p-10 text-center text-muted">
+        <div className="rounded-xl border-2 border-dashed border-primary/25 bg-primary-soft/20 p-10 text-center text-muted">
           No active residents.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-surface">
-          <table className="w-full text-sm">
+        <div className="overflow-hidden rounded-xl bg-surface shadow-card">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-primary-soft/40 text-left text-xs uppercase text-muted">
               <tr>
                 <th className="px-4 py-2 font-medium">Resident</th>
@@ -77,6 +81,7 @@ export default function RentPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -107,8 +112,8 @@ function LedgerDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-text/30">
-      <div className="flex h-full w-full max-w-xl flex-col border-l bg-bg shadow-lg">
+    <div className="fixed inset-0 z-40 flex justify-end bg-ink/40 backdrop-blur-sm">
+      <div className="flex h-full w-full max-w-xl flex-col border-l bg-bg shadow-elevated">
         <div className="flex items-center justify-between border-b p-4">
           <div>
             <h2 className="text-base font-semibold">{data?.resident.fullName ?? 'Loading…'}</h2>
@@ -124,9 +129,10 @@ function LedgerDrawer({
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
-            <div className="text-muted">Loading…</div>
+            <PageLoader className="min-h-[12rem]" />
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="text-left text-xs uppercase text-muted">
                 <tr>
                   <th className="py-2">Month</th>
@@ -163,7 +169,7 @@ function LedgerDrawer({
                           <button
                             type="button"
                             onClick={() => setRecordingMonth(m)}
-                            className="rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-deep"
+                            className="rounded-md bg-brand-gradient px-2 py-1 text-xs font-medium text-primary-foreground shadow-card transition hover:brightness-110"
                           >
                             Mark paid
                           </button>
@@ -174,6 +180,7 @@ function LedgerDrawer({
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
@@ -210,7 +217,6 @@ function RecordPaymentModal({
   const [method, setMethod] = useState<PaymentMethod>('UPI');
   const [paidOn, setPaidOn] = useState(new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState('');
-  const [err, setErr] = useState<string | null>(null);
 
   const m = useMutation({
     mutationFn: () =>
@@ -226,12 +232,13 @@ function RecordPaymentModal({
         reference: reference || undefined,
       }),
     onSuccess: onSaved,
-    onError: (e) => setErr(errorMessage(e)),
+    onError: (e) =>
+      toast({ variant: 'error', title: "Couldn't record payment", description: errorMessage(e) }),
   });
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-text/30 p-4">
-      <div className="w-full max-w-sm rounded-lg border bg-bg p-5 shadow-card">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl bg-bg p-5 shadow-elevated">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold">
             Record rent · {new Date(month.year, month.month - 1).toLocaleString('en-IN', { month: 'short', year: 'numeric' })}
@@ -262,11 +269,6 @@ function RecordPaymentModal({
           <Field label="Reference">
             <input value={reference} onChange={(e) => setReference(e.target.value)} className={inp} />
           </Field>
-          {err && (
-            <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
-              {err}
-            </div>
-          )}
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-md border px-3 py-2 text-sm hover:bg-surface">
@@ -275,7 +277,7 @@ function RecordPaymentModal({
           <button
             onClick={() => m.mutate()}
             disabled={m.isPending}
-            className="flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+            className="flex items-center gap-1 rounded-md bg-brand-gradient px-3 py-2 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
           >
             {m.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
             Save

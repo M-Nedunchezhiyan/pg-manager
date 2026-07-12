@@ -45,7 +45,9 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              // 'unsafe-eval' is dev-only — Next's dev server (HMR, React DevTools stack
+              // reconstruction) needs eval(); production never uses it and stays strict.
+              `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
               "style-src 'self' 'unsafe-inline'",
               `img-src 'self' data: blob: ${supabaseUrl}`,
               `connect-src 'self' ${supabaseUrl} ${supabaseWss}`,

@@ -2,13 +2,15 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { BedDouble, Check, ChevronLeft, ChevronRight, Loader2, UserCircle, Wallet } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { toast } from '@/components/ui/toast-store';
 import { api, errorMessage } from '@/lib/api';
+import { beginRouteLoading } from '@/lib/loading-store';
 import { onboardResident } from '@/lib/residents';
 import { getBedMap, type BedStatus } from '@/lib/rooms';
 import { uploadFile } from '@/lib/uploads';
@@ -99,7 +101,6 @@ export default function OnboardPage() {
   const { pgId } = useParams<{ pgId: string }>();
   const router = useRouter();
   const [stepIdx, setStepIdx] = useState(0);
-  const [serverError, setServerError] = useState<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const f = useForm<FormValues>({
@@ -152,8 +153,11 @@ export default function OnboardPage() {
         ...(v.paymentReference && { paymentReference: v.paymentReference }),
       });
     },
-    onSuccess: () => router.push(`/pg/${pgId}/residents` as never),
-    onError: (e) => setServerError(errorMessage(e)),
+    onSuccess: () => {
+      beginRouteLoading();
+      router.push(`/pg/${pgId}/residents` as never);
+    },
+    onError: (e) => toast({ variant: 'error', title: "Couldn't onboard resident", description: errorMessage(e) }),
   });
 
   const next = async () => {
@@ -203,7 +207,8 @@ export default function OnboardPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-1 text-2xl font-semibold">Onboard resident</h1>
+      <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">New Resident</p>
+      <h1 className="mb-1 font-display text-2xl font-medium">Onboard resident</h1>
       <p className="mb-6 text-sm text-muted">Complete each step to add a new resident to this PG.</p>
 
       <Stepper current={stepIdx} />
@@ -214,7 +219,7 @@ export default function OnboardPage() {
           if (stepIdx === STEPS.length - 1) mutation.mutate();
           else void next();
         }}
-        className="mt-6 rounded-lg border bg-surface p-6 shadow-card"
+        className="mt-6 rounded-xl bg-surface p-6 shadow-card"
       >
         {STEPS[stepIdx]!.key === 'personal' && <StepPersonal f={f} />}
         {STEPS[stepIdx]!.key === 'work' && <StepWork f={f} />}
@@ -235,25 +240,19 @@ export default function OnboardPage() {
           <StepReview values={f.getValues()} selectedBed={selectedBed} dueDayPreview={dueDayPreview} />
         )}
 
-        {serverError && (
-          <div role="alert" className="mt-4 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-            {serverError}
-          </div>
-        )}
-
-        <div className="mt-6 flex justify-between">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <button
             type="button"
             onClick={prev}
             disabled={stepIdx === 0}
-            className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-surface disabled:opacity-40"
+            className="flex items-center justify-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-surface disabled:opacity-40"
           >
             <ChevronLeft className="h-4 w-4" /> Back
           </button>
           <button
             type="submit"
             disabled={mutation.isPending}
-            className="flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+            className="flex items-center justify-center gap-1 rounded-md bg-brand-gradient px-4 py-2 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {stepIdx === STEPS.length - 1 ? 'Submit' : 'Next'}
@@ -278,7 +277,7 @@ function Stepper({ current }: { current: number }) {
             <span
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-full text-xs',
-                done && 'bg-primary text-primary-foreground',
+                done && 'bg-brand-gradient text-primary-foreground shadow-card',
                 active && 'bg-primary-soft text-primary-deep ring-2 ring-primary',
                 !done && !active && 'bg-bg text-muted ring-1 ring-border',
               )}
@@ -474,7 +473,7 @@ function StepBed({
       )}
 
       {bedMap.map((fl) => (
-        <div key={fl.id} className="rounded-md border bg-bg p-3">
+        <div key={fl.id} className="rounded-md bg-well p-3">
           <div className="mb-2 text-sm font-medium">
             Floor {fl.number} <span className="text-xs text-muted">({fl.allowedGender})</span>
           </div>
@@ -522,10 +521,10 @@ function BedTile({
       className={cn(
         'flex h-10 w-10 items-center justify-center rounded-md text-sm font-semibold ring-1 transition',
         status === 'VACANT' && 'bg-primary-soft text-primary-deep ring-primary/30 hover:bg-primary-soft hover:ring-primary',
-        status === 'OCCUPIED' && 'bg-danger/15 text-danger/70 ring-danger/30 cursor-not-allowed',
-        status === 'NOTICE_PERIOD' && 'bg-warn/20 text-warn ring-warn/40 cursor-not-allowed',
-        status === 'BLOCKED' && 'bg-muted/20 text-muted ring-muted/30 cursor-not-allowed',
-        selected && 'ring-2 ring-primary-deep bg-primary text-primary-foreground',
+        status === 'OCCUPIED' && 'bg-primary/10 text-primary-deep/70 ring-primary/20 cursor-not-allowed',
+        status === 'NOTICE_PERIOD' && 'bg-warn/15 text-warn ring-warn/30 cursor-not-allowed',
+        status === 'BLOCKED' && 'bg-muted/15 text-muted ring-muted/25 cursor-not-allowed',
+        selected && 'ring-2 ring-primary-deep bg-brand-gradient text-primary-foreground',
       )}
     >
       {label}
@@ -581,13 +580,13 @@ function StepReview({
 }) {
   return (
     <div className="space-y-4 text-sm">
-      <Section title="Resident">
+      <Section title="Resident" icon={UserCircle}>
         <Row k="Name" v={values.fullName} />
         <Row k="Phone" v={values.phone} />
         <Row k="Gender" v={values.gender} />
         <Row k="Work / institution" v={values.workOrInstitution} />
       </Section>
-      <Section title="Stay">
+      <Section title="Stay" icon={BedDouble}>
         <Row k="Join date" v={values.joinedOn} />
         <Row k="With food" v={values.withFood ? 'Yes' : 'No'} />
         <Row
@@ -600,7 +599,7 @@ function StepReview({
         />
         <Row k="Rent due day" v={dueDayPreview ?? '—'} />
       </Section>
-      <Section title="Payment captured">
+      <Section title="Payment captured" icon={Wallet}>
         <Row k="First month rent" v={paiseToRupees(rupeesToPaise(values.firstMonthRentRupees))} />
         <Row k="Advance" v={paiseToRupees(rupeesToPaise(values.advanceRupees))} />
         <Row k="Method" v={values.paymentMethod} />
@@ -634,10 +633,21 @@ function Field({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  icon: Icon,
+}: {
+  title: string;
+  children: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+}) {
   return (
-    <div className="rounded-md border bg-bg p-3">
-      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">{title}</div>
+    <div className="rounded-md bg-well p-3">
+      <div className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+        {Icon && <Icon className="h-3.5 w-3.5 text-primary-deep" />}
+        {title}
+      </div>
       <dl className="space-y-1">{children}</dl>
     </div>
   );

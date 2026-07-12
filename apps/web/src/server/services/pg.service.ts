@@ -18,6 +18,7 @@ export const CreatePgSchema = z.object({
   pincode: z.string().regex(/^\d{6}$/),
   phone: z.string().regex(/^\+?\d{10,15}$/).optional(),
   imageUrl: z.string().url().optional(),
+  amenities: z.array(z.string().min(1).max(40)).max(30).optional(),
 });
 export type CreatePgInput = z.infer<typeof CreatePgSchema>;
 
@@ -117,4 +118,56 @@ export async function removePG(pgId: string, userId: string, role: UserRole) {
     entityId: pgId,
     pgId,
   });
+}
+
+/** Occupancy snapshot + last-6-months revenue/expense/net trend for the PG overview dashboard. */
+export async function getPgDashboard(pgId: string, userId: string, role: UserRole) {
+  await assertPgScope(pgId, userId, role);
+
+  const [activeResidents, beds] = await Promise.all([
+    prisma.resident.count({ where: { pgId, status: 'ACTIVE' } }),
+    prisma.bed.findMany({ where: { room: { floor: { pgId } } }, select: { status: true } }),
+  ]);
+
+  const totalBeds = beds.length;
+  const occupied = beds.filter((b: { status: string }) => b.status === 'OCCUPIED').length;
+  const vacant = beds.filter((b: { status: string }) => b.status === 'VACANT').length;
+  const occupancyPercent = totalBeds > 0 ? Math.round((occupied / totalBeds) * 100) : 0;
+
+  const now = new Date();
+  const oldestMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
+  const monthsWindow = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1));
+    return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 };
+  });
+  const rangeStart = oldestMonthStart;
+
+  const [payments, expenses] = await Promise.all([
+    prisma.payment.findMany({
+      where: { resident: { pgId }, paidOn: { gte: rangeStart }, kind: { not: 'REFUND' } },
+      select: { amount: true, lateFee: true, paidOn: true },
+    }),
+    prisma.expense.findMany({
+      where: { pgId, spentOn: { gte: rangeStart } },
+      select: { amount: true, spentOn: true },
+    }),
+  ]);
+
+  const months = monthsWindow.map(({ year, month }) => {
+    const revenue = payments
+      .filter((p: { paidOn: Date }) => p.paidOn.getUTCFullYear() === year && p.paidOn.getUTCMonth() + 1 === month)
+      .reduce((s: number, p: { amount: number; lateFee: number }) => s + p.amount + p.lateFee, 0);
+    const monthExpenses = expenses
+      .filter((e: { spentOn: Date }) => e.spentOn.getUTCFullYear() === year && e.spentOn.getUTCMonth() + 1 === month)
+      .reduce((s: number, e: { amount: number }) => s + e.amount, 0);
+    return { year, month, revenue, expenses: monthExpenses, net: revenue - monthExpenses };
+  });
+
+  const thisMonth = months.at(-1);
+
+  return {
+    counts: { activeResidents, totalBeds, occupied, vacant, occupancyPercent },
+    thisMonth: thisMonth ? { revenue: thisMonth.revenue, expenses: thisMonth.expenses, net: thisMonth.net } : undefined,
+    months,
+  };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Star, Trash2 } from 'lucide-react';
+import { CalendarDays, ListChecks, Plus, Star, Trash2, UtensilsCrossed } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
@@ -43,9 +43,10 @@ export default function FoodPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Food</h1>
+      <p className="text-xs font-semibold uppercase tracking-wide text-primary-deep">Food & Menus</p>
+      <h1 className="font-display text-2xl font-medium">Food</h1>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <ItemsCard items={itemsQ.data ?? []} onChange={invalidate} />
         <GroupsCard
           pgId={pgId}
@@ -95,8 +96,11 @@ function ItemsCard({
   });
 
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Items (master)</h2>
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+        <UtensilsCrossed className="h-3.5 w-3.5 text-primary-deep" />
+        Items (master)
+      </h2>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -113,7 +117,7 @@ function ItemsCard({
         <button
           type="submit"
           disabled={!name.trim() || add.isPending}
-          className="flex items-center gap-1 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+          className="flex items-center gap-1 rounded-md bg-brand-gradient px-3 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -188,8 +192,11 @@ function GroupsCard({
   }, [groups]);
 
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Groups</h2>
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+        <ListChecks className="h-3.5 w-3.5 text-primary-deep" />
+        Groups
+      </h2>
 
       <form
         onSubmit={(e) => {
@@ -253,7 +260,7 @@ function GroupsCard({
           <button
             type="submit"
             disabled={!name.trim() || pickedIds.size === 0 || add.isPending}
-            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary-deep disabled:opacity-60"
+            className="rounded-md bg-brand-gradient px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-card transition hover:brightness-110 disabled:opacity-60"
           >
             Create group
           </button>
@@ -341,13 +348,16 @@ function DailyMenuCard({
   });
 
   return (
-    <div className="rounded-lg border bg-surface p-4 shadow-card">
-      <div className="mb-4 flex items-center justify-between gap-2">
+    <div className="rounded-xl bg-surface p-4 shadow-card transition hover:shadow-elevated">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Daily Menu</h2>
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+            <CalendarDays className="h-3.5 w-3.5 text-primary-deep" />
+            Daily Menu
+          </h2>
           <p className="text-xs text-muted">Pick a group per meal — or apply defaults.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
             value={date}
@@ -370,7 +380,7 @@ function DailyMenuCard({
           const groupsForMeal = groups.filter((g) => g.mealType === meal);
           const itemsShown = menu?.group?.items.map((gi) => gi.item.name) ?? menu?.items.map((mi) => mi.item.name) ?? [];
           return (
-            <div key={meal} className="rounded-md border bg-bg p-3">
+            <div key={meal} className="rounded-md bg-well p-3">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{meal}</div>
               <select
                 value={menu?.groupId ?? ''}
